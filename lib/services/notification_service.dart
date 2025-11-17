@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -9,6 +11,9 @@ class NotificationService {
   static Future<void> initialize() async {
     // تهيئة المناطق الزمنية
     tz.initializeTimeZones();
+
+    // تعيين المنطقة الزمنية المحلية (القاهرة لمصر)
+    tz.setLocalLocation(tz.getLocation('Africa/Cairo'));
 
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -28,17 +33,22 @@ class NotificationService {
     await _notifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // معالجة الضغط على الإشعار
         print('تم الضغط على الإشعار: ${response.payload}');
       },
     );
 
     // طلب الصلاحيات للأندرويد 13+
-    await _notifications
+    final androidImplementation = _notifications
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
+        >();
+
+    if (androidImplementation != null) {
+      await androidImplementation.requestNotificationsPermission();
+
+      // طلب صلاحية الإشعارات الدقيقة للأندرويد 12+
+      await androidImplementation.requestExactAlarmsPermission();
+    }
   }
 
   // إرسال إشعار فوري
@@ -53,10 +63,17 @@ class NotificationService {
           'islamic_app_channel',
           'الأذكار والصلاة',
           channelDescription: 'إشعارات الأذكار ومواقيت الصلاة',
-          importance: Importance.high,
+          importance: Importance.max,
           priority: Priority.high,
           playSound: true,
           enableVibration: true,
+          enableLights: true,
+          color: Color(0xFF1B5E20),
+          icon: '@mipmap/ic_launcher',
+          // هذا يجعل الإشعار يظهر حتى لو التطبيق مغلق
+          ongoing: false,
+          autoCancel: true,
+          fullScreenIntent: true,
         );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -87,16 +104,21 @@ class NotificationService {
     required DateTime scheduledDate,
     String? payload,
   }) async {
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-          'islamic_app_channel',
-          'الأذكار والصلاة',
-          channelDescription: 'إشعارات الأذكار ومواقيت الصلاة',
-          importance: Importance.high,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-        );
+    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'islamic_app_channel',
+      'الأذكار والصلاة',
+      channelDescription: 'إشعارات الأذكار ومواقيت الصلاة',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+      enableLights: true,
+      color: Color(0xFF1B5E20),
+      icon: '@mipmap/ic_launcher',
+      ongoing: false,
+      autoCancel: true,
+      fullScreenIntent: true,
+    );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
@@ -105,7 +127,7 @@ class NotificationService {
     );
 
     const NotificationDetails notificationDetails = NotificationDetails(
-      android: androidDetails,
+      android: androidDeta,
       iOS: iosDetails,
     );
 
@@ -116,11 +138,13 @@ class NotificationService {
       tz.TZDateTime.from(scheduledDate, tz.local),
       notificationDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       payload: payload,
     );
   }
 
-  // جدولة إشعار يومي
+  // جدولة إشعار يومي (هذه الدالة الأساسية للأذكار)
   static Future<void> scheduleDailyNotification({
     required int id,
     required String title,
@@ -134,10 +158,19 @@ class NotificationService {
           'islamic_app_channel',
           'الأذكار والصلاة',
           channelDescription: 'إشعارات الأذكار ومواقيت الصلاة',
-          importance: Importance.high,
+          importance: Importance.max,
           priority: Priority.high,
           playSound: true,
           enableVibration: true,
+          enableLights: true,
+          color: Color(0xFF1B5E20),
+          icon: '@mipmap/ic_launcher',
+          ongoing: false,
+          autoCancel: true,
+          fullScreenIntent: true,
+          // معلومات إضافية للتأكد من عمل الإشعار
+          channelShowBadge: true,
+          showWhen: true,
         );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -151,13 +184,20 @@ class NotificationService {
       iOS: iosDetails,
     );
 
+    // حساب الوقت التالي للإشعار
+    final scheduledDate = _nextInstanceOfTime(hour, minute);
+
+    print('جدولة إشعار: $title في ${scheduledDate.toString()}');
+
     await _notifications.zonedSchedule(
       id,
       title,
       body,
-      _nextInstanceOfTime(hour, minute),
+      scheduledDate,
       notificationDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
       payload: payload,
     );
@@ -176,6 +216,7 @@ class NotificationService {
       0,
     );
 
+    // إذا كان الوقت قد مضى اليوم، جدول للغد
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
@@ -186,16 +227,32 @@ class NotificationService {
   // إلغاء إشعار محدد
   static Future<void> cancelNotification(int id) async {
     await _notifications.cancel(id);
+    print('تم إلغاء الإشعار رقم: $id');
   }
 
   // إلغاء جميع الإشعارات
   static Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
+    print('تم إلغاء جميع الإشعارات');
   }
 
-  // الحصول على قائمة الإشعارات المجدولة
+  // الحصول على قائمة الإشعارات المجدولة (للتحقق من أن الإشعارات مجدولة)
   static Future<List<PendingNotificationRequest>>
   getPendingNotifications() async {
-    return await _notifications.pendingNotificationRequests();
+    final pending = await _notifications.pendingNotificationRequests();
+    print('عدد الإشعارات المجدولة: ${pending.length}');
+    for (var notification in pending) {
+      print('إشعار ID: ${notification.id}, العنوان: ${notification.title}');
+    }
+    return pending;
+  }
+
+  // دالة اختبار لإرسال إشعار فوري
+  static Future<void> testNotification() async {
+    await showNotification(
+      id: 999,
+      title: 'إشعار تجريبي',
+      body: 'الإشعارات تعمل بشكل صحيح! ✓',
+    );
   }
 }
