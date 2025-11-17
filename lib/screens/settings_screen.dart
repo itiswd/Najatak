@@ -38,11 +38,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('تم إرسال إشعار تجريبي'),
+          content: Text('تم إرسال إشعار تجريبي فوري'),
           backgroundColor: Colors.green,
         ),
       );
     }
+  }
+
+  Future<void> _testScheduledNotification() async {
+    await NotificationService.testScheduledNotification();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم جدولة إشعار تجريبي بعد دقيقة واحدة ⏰'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+    // تحديث القائمة
+    await Future.delayed(const Duration(seconds: 1));
+    await _loadPendingNotifications();
   }
 
   Future<void> _cancelAllNotifications() async {
@@ -170,9 +186,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: ElevatedButton.icon(
                             onPressed: _testNotification,
                             icon: const Icon(Icons.send),
-                            label: const Text('إرسال إشعار تجريبي'),
+                            label: const Text('إرسال إشعار فوري'),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.all(16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _testScheduledNotification,
+                            icon: const Icon(Icons.schedule),
+                            label: const Text('اختبار إشعار مجدول (بعد دقيقة)'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.all(16),
+                              backgroundColor: Colors.orange,
                             ),
                           ),
                         ),
