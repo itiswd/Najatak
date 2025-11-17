@@ -247,7 +247,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               decoration: BoxDecoration(
                                 color: Theme.of(
                                   context,
-                                ).primaryColor.withOpacity(0.2),
+                                ).primaryColor.withAlpha(51),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -283,17 +283,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               margin: const EdgeInsets.only(bottom: 12),
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: color.withOpacity(0.1),
+                                color: color.withAlpha(25),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: color.withOpacity(0.3),
+                                  color: color.withAlpha(77),
                                   width: 1,
                                 ),
                               ),
                               child: Row(
                                 children: [
                                   CircleAvatar(
-                                    backgroundColor: color.withOpacity(0.2),
+                                    backgroundColor: color.withAlpha(51),
                                     child: Icon(icon, color: color),
                                   ),
                                   const SizedBox(width: 12),

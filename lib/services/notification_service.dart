@@ -1,5 +1,4 @@
-import 'dart:ui';
-
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -33,7 +32,7 @@ class NotificationService {
     await _notifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        print('تم الضغط على الإشعار: ${response.payload}');
+        debugPrint('تم الضغط على الإشعار: ${response.payload}');
       },
     );
 
@@ -46,12 +45,12 @@ class NotificationService {
     if (androidImplementation != null) {
       final granted = await androidImplementation
           .requestNotificationsPermission();
-      print('صلاحية الإشعارات: $granted');
+      debugPrint('صلاحية الإشعارات: $granted');
 
       // طلب صلاحية الإشعارات الدقيقة للأندرويد 12+
       final exactAlarmGranted = await androidImplementation
           .requestExactAlarmsPermission();
-      print('صلاحية الإشعارات الدقيقة: $exactAlarmGranted');
+      debugPrint('صلاحية الإشعارات الدقيقة: $exactAlarmGranted');
     }
   }
 
@@ -98,7 +97,7 @@ class NotificationService {
       payload: payload,
     );
 
-    print('تم إرسال إشعار فوري - ID: $id');
+    debugPrint('تم إرسال إشعار فوري - ID: $id');
   }
 
   // جدولة إشعار يومي (هذه الدالة الأساسية للأذكار)
@@ -113,7 +112,7 @@ class NotificationService {
     try {
       // إلغاء أي إشعار قديم بنفس ID
       await _notifications.cancel(id);
-      print('تم إلغاء الإشعار القديم - ID: $id');
+      debugPrint('تم إلغاء الإشعار القديم - ID: $id');
 
       const AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
@@ -148,14 +147,16 @@ class NotificationService {
       // حساب الوقت التالي للإشعار
       final scheduledDate = _nextInstanceOfTime(hour, minute);
 
-      print('═══════════════════════════════════════');
-      print('📅 جدولة إشعار جديد:');
-      print('   ID: $id');
-      print('   العنوان: $title');
-      print('   الوقت المطلوب: $hour:${minute.toString().padLeft(2, '0')}');
-      print('   الوقت المجدول: ${scheduledDate.toString()}');
-      print('   الوقت الحالي: ${tz.TZDateTime.now(tz.local).toString()}');
-      print('═══════════════════════════════════════');
+      debugPrint('═══════════════════════════════════════');
+      debugPrint('📅 جدولة إشعار جديد:');
+      debugPrint('   ID: $id');
+      debugPrint('   العنوان: $title');
+      debugPrint(
+        '   الوقت المطلوب: $hour:${minute.toString().padLeft(2, '0')}',
+      );
+      debugPrint('   الوقت المجدول: ${scheduledDate.toString()}');
+      debugPrint('   الوقت الحالي: ${tz.TZDateTime.now(tz.local).toString()}');
+      debugPrint('═══════════════════════════════════════');
 
       await _notifications.zonedSchedule(
         id,
@@ -168,16 +169,16 @@ class NotificationService {
         payload: payload,
       );
 
-      print('✅ تم جدولة الإشعار بنجاح!');
+      debugPrint('✅ تم جدولة الإشعار بنجاح!');
 
       // التحقق من الإشعارات المجدولة
       final pending = await _notifications.pendingNotificationRequests();
-      print('📋 عدد الإشعارات المجدولة الآن: ${pending.length}');
+      debugPrint('📋 عدد الإشعارات المجدولة الآن: ${pending.length}');
       for (var p in pending) {
-        print('   - ID: ${p.id}, العنوان: ${p.title}');
+        debugPrint('   - ID: ${p.id}, العنوان: ${p.title}');
       }
     } catch (e) {
-      print('❌ خطأ في جدولة الإشعار: $e');
+      debugPrint('❌ خطأ في جدولة الإشعار: $e');
     }
   }
 
@@ -197,9 +198,9 @@ class NotificationService {
     // إذا كان الوقت قد مضى اليوم، جدول للغد
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
-      print('⏭️ الوقت مضى اليوم، سيتم الجدولة للغد');
+      debugPrint('⏭️ الوقت مضى اليوم، سيتم الجدولة للغد');
     } else {
-      print('⏰ سيتم الجدولة لنفس اليوم');
+      debugPrint('⏰ سيتم الجدولة لنفس اليوم');
     }
 
     return scheduledDate;
@@ -208,22 +209,22 @@ class NotificationService {
   // إلغاء إشعار محدد
   static Future<void> cancelNotification(int id) async {
     await _notifications.cancel(id);
-    print('🗑️ تم إلغاء الإشعار رقم: $id');
+    debugPrint('🗑️ تم إلغاء الإشعار رقم: $id');
   }
 
   // إلغاء جميع الإشعارات
   static Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
-    print('🗑️ تم إلغاء جميع الإشعارات');
+    debugPrint('🗑️ تم إلغاء جميع الإشعارات');
   }
 
   // الحصول على قائمة الإشعارات المجدولة
   static Future<List<PendingNotificationRequest>>
   getPendingNotifications() async {
     final pending = await _notifications.pendingNotificationRequests();
-    print('📋 عدد الإشعارات المجدولة: ${pending.length}');
+    debugPrint('📋 عدد الإشعارات المجدولة: ${pending.length}');
     for (var notification in pending) {
-      print('   - ID: ${notification.id}, العنوان: ${notification.title}');
+      debugPrint('   - ID: ${notification.id}, العنوان: ${notification.title}');
     }
     return pending;
   }
@@ -242,11 +243,11 @@ class NotificationService {
     final now = tz.TZDateTime.now(tz.local);
     final scheduledTime = now.add(const Duration(minutes: 1));
 
-    print('═══════════════════════════════════════');
-    print('🧪 اختبار إشعار مجدول:');
-    print('   الوقت الحالي: ${now.toString()}');
-    print('   الوقت المجدول: ${scheduledTime.toString()}');
-    print('═══════════════════════════════════════');
+    debugPrint('═══════════════════════════════════════');
+    debugPrint('🧪 اختبار إشعار مجدول:');
+    debugPrint('   الوقت الحالي: ${now.toString()}');
+    debugPrint('   الوقت المجدول: ${scheduledTime.toString()}');
+    debugPrint('═══════════════════════════════════════');
 
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
@@ -272,6 +273,6 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
 
-    print('✅ تم جدولة إشعار تجريبي بعد دقيقة واحدة');
+    debugPrint('✅ تم جدولة إشعار تجريبي بعد دقيقة واحدة');
   }
 }

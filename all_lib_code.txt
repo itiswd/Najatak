@@ -1302,7 +1302,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           leading: CircleAvatar(
-            backgroundColor: color.withOpacity(0.2),
+            backgroundColor: color.withAlpha(51),
             child: Icon(icon, color: color),
           ),
           title: Text(
@@ -1392,7 +1392,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
+                  color: color.withAlpha(51),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -1629,7 +1629,7 @@ class HomeScreen extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [color, color.withOpacity(0.7)],
+              colors: [color, color.withAlpha(0.7)],
             ),
           ),
           child: Column(
@@ -1902,7 +1902,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               decoration: BoxDecoration(
                                 color: Theme.of(
                                   context,
-                                ).primaryColor.withOpacity(0.2),
+                                ).primaryColor.withAlpha(51),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -1938,17 +1938,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               margin: const EdgeInsets.only(bottom: 12),
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: color.withOpacity(0.1),
+                                color: color.withAlpha(25),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: color.withOpacity(0.3),
+                                  color: color.withAlpha(77),
                                   width: 1,
                                 ),
                               ),
                               child: Row(
                                 children: [
                                   CircleAvatar(
-                                    backgroundColor: color.withOpacity(0.2),
+                                    backgroundColor: color.withAlpha(51),
                                     child: Icon(icon, color: color),
                                   ),
                                   const SizedBox(width: 12),
@@ -2146,7 +2146,7 @@ class NotificationService {
     await _notifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        print('تم الضغط على الإشعار: ${response.payload}');
+        debugPrint('تم الضغط على الإشعار: ${response.payload}');
       },
     );
 
@@ -2159,12 +2159,12 @@ class NotificationService {
     if (androidImplementation != null) {
       final granted = await androidImplementation
           .requestNotificationsPermission();
-      print('صلاحية الإشعارات: $granted');
+      debugPrint('صلاحية الإشعارات: $granted');
 
       // طلب صلاحية الإشعارات الدقيقة للأندرويد 12+
       final exactAlarmGranted = await androidImplementation
           .requestExactAlarmsPermission();
-      print('صلاحية الإشعارات الدقيقة: $exactAlarmGranted');
+      debugPrint('صلاحية الإشعارات الدقيقة: $exactAlarmGranted');
     }
   }
 
@@ -2211,7 +2211,7 @@ class NotificationService {
       payload: payload,
     );
 
-    print('تم إرسال إشعار فوري - ID: $id');
+    debugPrint('تم إرسال إشعار فوري - ID: $id');
   }
 
   // جدولة إشعار يومي (هذه الدالة الأساسية للأذكار)
@@ -2226,7 +2226,7 @@ class NotificationService {
     try {
       // إلغاء أي إشعار قديم بنفس ID
       await _notifications.cancel(id);
-      print('تم إلغاء الإشعار القديم - ID: $id');
+      debugPrint('تم إلغاء الإشعار القديم - ID: $id');
 
       const AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
@@ -2261,14 +2261,14 @@ class NotificationService {
       // حساب الوقت التالي للإشعار
       final scheduledDate = _nextInstanceOfTime(hour, minute);
 
-      print('═══════════════════════════════════════');
-      print('📅 جدولة إشعار جديد:');
-      print('   ID: $id');
-      print('   العنوان: $title');
-      print('   الوقت المطلوب: $hour:${minute.toString().padLeft(2, '0')}');
-      print('   الوقت المجدول: ${scheduledDate.toString()}');
-      print('   الوقت الحالي: ${tz.TZDateTime.now(tz.local).toString()}');
-      print('═══════════════════════════════════════');
+      debugPrint('═══════════════════════════════════════');
+      debugPrint('📅 جدولة إشعار جديد:');
+      debugPrint('   ID: $id');
+      debugPrint('   العنوان: $title');
+      debugPrint('   الوقت المطلوب: $hour:${minute.toString().padLeft(2, '0')}');
+      debugPrint('   الوقت المجدول: ${scheduledDate.toString()}');
+      debugPrint('   الوقت الحالي: ${tz.TZDateTime.now(tz.local).toString()}');
+      debugPrint('═══════════════════════════════════════');
 
       await _notifications.zonedSchedule(
         id,
@@ -2281,16 +2281,16 @@ class NotificationService {
         payload: payload,
       );
 
-      print('✅ تم جدولة الإشعار بنجاح!');
+      debugPrint('✅ تم جدولة الإشعار بنجاح!');
 
       // التحقق من الإشعارات المجدولة
       final pending = await _notifications.pendingNotificationRequests();
-      print('📋 عدد الإشعارات المجدولة الآن: ${pending.length}');
+      debugPrint('📋 عدد الإشعارات المجدولة الآن: ${pending.length}');
       for (var p in pending) {
-        print('   - ID: ${p.id}, العنوان: ${p.title}');
+        debugPrint('   - ID: ${p.id}, العنوان: ${p.title}');
       }
     } catch (e) {
-      print('❌ خطأ في جدولة الإشعار: $e');
+      debugPrint('❌ خطأ في جدولة الإشعار: $e');
     }
   }
 
@@ -2310,9 +2310,9 @@ class NotificationService {
     // إذا كان الوقت قد مضى اليوم، جدول للغد
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
-      print('⏭️ الوقت مضى اليوم، سيتم الجدولة للغد');
+      debugPrint('⏭️ الوقت مضى اليوم، سيتم الجدولة للغد');
     } else {
-      print('⏰ سيتم الجدولة لنفس اليوم');
+      debugPrint('⏰ سيتم الجدولة لنفس اليوم');
     }
 
     return scheduledDate;
@@ -2321,22 +2321,22 @@ class NotificationService {
   // إلغاء إشعار محدد
   static Future<void> cancelNotification(int id) async {
     await _notifications.cancel(id);
-    print('🗑️ تم إلغاء الإشعار رقم: $id');
+    debugPrint('🗑️ تم إلغاء الإشعار رقم: $id');
   }
 
   // إلغاء جميع الإشعارات
   static Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
-    print('🗑️ تم إلغاء جميع الإشعارات');
+    debugPrint('🗑️ تم إلغاء جميع الإشعارات');
   }
 
   // الحصول على قائمة الإشعارات المجدولة
   static Future<List<PendingNotificationRequest>>
   getPendingNotifications() async {
     final pending = await _notifications.pendingNotificationRequests();
-    print('📋 عدد الإشعارات المجدولة: ${pending.length}');
+    debugPrint('📋 عدد الإشعارات المجدولة: ${pending.length}');
     for (var notification in pending) {
-      print('   - ID: ${notification.id}, العنوان: ${notification.title}');
+      debugPrint('   - ID: ${notification.id}, العنوان: ${notification.title}');
     }
     return pending;
   }
@@ -2355,11 +2355,11 @@ class NotificationService {
     final now = tz.TZDateTime.now(tz.local);
     final scheduledTime = now.add(const Duration(minutes: 1));
 
-    print('═══════════════════════════════════════');
-    print('🧪 اختبار إشعار مجدول:');
-    print('   الوقت الحالي: ${now.toString()}');
-    print('   الوقت المجدول: ${scheduledTime.toString()}');
-    print('═══════════════════════════════════════');
+    debugPrint('═══════════════════════════════════════');
+    debugPrint('🧪 اختبار إشعار مجدول:');
+    debugPrint('   الوقت الحالي: ${now.toString()}');
+    debugPrint('   الوقت المجدول: ${scheduledTime.toString()}');
+    debugPrint('═══════════════════════════════════════');
 
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
@@ -2385,6 +2385,6 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
 
-    print('✅ تم جدولة إشعار تجريبي بعد دقيقة واحدة');
+    debugPrint('✅ تم جدولة إشعار تجريبي بعد دقيقة واحدة');
   }
 }
