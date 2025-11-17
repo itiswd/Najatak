@@ -70,7 +70,6 @@ class NotificationService {
           enableLights: true,
           color: Color(0xFF1B5E20),
           icon: '@mipmap/ic_launcher',
-          // هذا يجعل الإشعار يظهر حتى لو التطبيق مغلق
           ongoing: false,
           autoCancel: true,
           fullScreenIntent: true,
@@ -104,21 +103,22 @@ class NotificationService {
     required DateTime scheduledDate,
     String? payload,
   }) async {
-    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'islamic_app_channel',
-      'الأذكار والصلاة',
-      channelDescription: 'إشعارات الأذكار ومواقيت الصلاة',
-      importance: Importance.max,
-      priority: Priority.high,
-      playSound: true,
-      enableVibration: true,
-      enableLights: true,
-      color: Color(0xFF1B5E20),
-      icon: '@mipmap/ic_launcher',
-      ongoing: false,
-      autoCancel: true,
-      fullScreenIntent: true,
-    );
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'islamic_app_channel',
+          'الأذكار والصلاة',
+          channelDescription: 'إشعارات الأذكار ومواقيت الصلاة',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          color: Color(0xFF1B5E20),
+          icon: '@mipmap/ic_launcher',
+          ongoing: false,
+          autoCancel: true,
+          fullScreenIntent: true,
+        );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
@@ -127,7 +127,7 @@ class NotificationService {
     );
 
     const NotificationDetails notificationDetails = NotificationDetails(
-      android: androidDeta,
+      android: androidDetails,
       iOS: iosDetails,
     );
 
@@ -138,8 +138,6 @@ class NotificationService {
       tz.TZDateTime.from(scheduledDate, tz.local),
       notificationDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
       payload: payload,
     );
   }
@@ -168,7 +166,6 @@ class NotificationService {
           ongoing: false,
           autoCancel: true,
           fullScreenIntent: true,
-          // معلومات إضافية للتأكد من عمل الإشعار
           channelShowBadge: true,
           showWhen: true,
         );
@@ -196,8 +193,6 @@ class NotificationService {
       scheduledDate,
       notificationDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
       payload: payload,
     );
@@ -236,7 +231,7 @@ class NotificationService {
     print('تم إلغاء جميع الإشعارات');
   }
 
-  // الحصول على قائمة الإشعارات المجدولة (للتحقق من أن الإشعارات مجدولة)
+  // الحصول على قائمة الإشعارات المجدولة
   static Future<List<PendingNotificationRequest>>
   getPendingNotifications() async {
     final pending = await _notifications.pendingNotificationRequests();
