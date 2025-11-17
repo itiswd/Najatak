@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'screens/home_screen.dart';
 import 'services/notification_service.dart';
 
-// تهيئة إشعارات
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // تهيئة خدمة الإشعارات
   await NotificationService.initialize();
 
   runApp(const Najatak());
@@ -25,9 +24,16 @@ class Najatak extends StatelessWidget {
     return MaterialApp(
       title: 'تطبيق إسلامي',
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('ar', ''), Locale('en', '')],
+      locale: const Locale('ar', ''),
       theme: ThemeData(
         primarySwatch: Colors.teal,
-        fontFamily: 'Cairo', // يمكن إضافة خط عربي جميل
+        fontFamily: 'Cairo',
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF1B5E20),
           brightness: Brightness.light,

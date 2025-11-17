@@ -11,12 +11,12 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'التطبيق الإسلامي',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          'نَجَاتَك',
+          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.edit_notifications),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const SettingsScreen()),
@@ -44,7 +44,7 @@ class HomeScreen extends StatelessWidget {
             ),
             _buildFeatureCard(
               context,
-              title: 'مواقيت الصلاة',
+              title: 'مواقيت\nالصلاة',
               icon: Icons.access_time,
               color: const Color(0xFF1565C0),
               onTap: () {
@@ -55,7 +55,7 @@ class HomeScreen extends StatelessWidget {
             ),
             _buildFeatureCard(
               context,
-              title: 'اتجاه القبلة',
+              title: 'اتجاه\nالقبلة',
               icon: Icons.explore,
               color: const Color(0xFFD84315),
               onTap: () {
@@ -66,7 +66,7 @@ class HomeScreen extends StatelessWidget {
             ),
             _buildFeatureCard(
               context,
-              title: 'القرآن الكريم',
+              title: 'القرآن\nالكريم',
               icon: Icons.menu_book,
               color: const Color(0xFF6A1B9A),
               onTap: () {
@@ -107,11 +107,11 @@ class HomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 60, color: Colors.white),
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),

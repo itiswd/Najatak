@@ -11,19 +11,32 @@ class AzkarScreen extends StatefulWidget {
   State<AzkarScreen> createState() => _AzkarScreenState();
 }
 
-class _AzkarScreenState extends State<AzkarScreen> {
+class _AzkarScreenState extends State<AzkarScreen>
+    with SingleTickerProviderStateMixin {
   bool morningNotificationEnabled = false;
   bool eveningNotificationEnabled = false;
   bool sleepNotificationEnabled = false;
 
-  TimeOfDay morningTime = const TimeOfDay(hour: 7, minute: 0);
-  TimeOfDay eveningTime = const TimeOfDay(hour: 17, minute: 0);
+  TimeOfDay morningTime = const TimeOfDay(hour: 6, minute: 0);
+  TimeOfDay eveningTime = const TimeOfDay(hour: 16, minute: 30);
   TimeOfDay sleepTime = const TimeOfDay(hour: 22, minute: 0);
+
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -35,14 +48,13 @@ class _AzkarScreenState extends State<AzkarScreen> {
           prefs.getBool('evening_notification') ?? false;
       sleepNotificationEnabled = prefs.getBool('sleep_notification') ?? false;
 
-      // تحميل الأوقات المحفوظة
       morningTime = TimeOfDay(
-        hour: prefs.getInt('morning_hour') ?? 7,
+        hour: prefs.getInt('morning_hour') ?? 6,
         minute: prefs.getInt('morning_minute') ?? 0,
       );
       eveningTime = TimeOfDay(
-        hour: prefs.getInt('evening_hour') ?? 17,
-        minute: prefs.getInt('evening_minute') ?? 0,
+        hour: prefs.getInt('evening_hour') ?? 16,
+        minute: prefs.getInt('evening_minute') ?? 30,
       );
       sleepTime = TimeOfDay(
         hour: prefs.getInt('sleep_hour') ?? 22,
@@ -60,9 +72,19 @@ class _AzkarScreenState extends State<AzkarScreen> {
       context: context,
       initialTime: initialTime,
       builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-          child: child!,
+        return Theme(
+          data: Theme.of(context).copyWith(
+            timePickerTheme: TimePickerThemeData(
+              backgroundColor: Colors.white,
+              hourMinuteShape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+          ),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child!,
+          ),
         );
       },
     );
@@ -74,7 +96,6 @@ class _AzkarScreenState extends State<AzkarScreen> {
 
   Future<void> _toggleMorningNotification(bool value) async {
     if (value) {
-      // اختيار الوقت أولاً
       await _selectTime(context, morningTime, (picked) async {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('morning_notification', true);
@@ -95,13 +116,8 @@ class _AzkarScreenState extends State<AzkarScreen> {
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'تم تفعيل تنبيه أذكار الصباح الساعة ${picked.format(context)}',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          _showSuccessSnackBar(
+            'تم تفعيل تنبيه أذكار الصباح الساعة ${picked.format(context)}',
           );
         }
       });
@@ -115,9 +131,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إلغاء تنبيه أذكار الصباح')),
-        );
+        _showInfoSnackBar('تم إلغاء تنبيه أذكار الصباح');
       }
     }
   }
@@ -144,13 +158,8 @@ class _AzkarScreenState extends State<AzkarScreen> {
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'تم تفعيل تنبيه أذكار المساء الساعة ${picked.format(context)}',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          _showSuccessSnackBar(
+            'تم تفعيل تنبيه أذكار المساء الساعة ${picked.format(context)}',
           );
         }
       });
@@ -164,9 +173,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إلغاء تنبيه أذكار المساء')),
-        );
+        _showInfoSnackBar('تم إلغاء تنبيه أذكار المساء');
       }
     }
   }
@@ -193,13 +200,8 @@ class _AzkarScreenState extends State<AzkarScreen> {
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'تم تفعيل تنبيه أذكار النوم الساعة ${picked.format(context)}',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          _showSuccessSnackBar(
+            'تم تفعيل تنبيه أذكار النوم الساعة ${picked.format(context)}',
           );
         }
       });
@@ -213,9 +215,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إلغاء تنبيه أذكار النوم')),
-        );
+        _showInfoSnackBar('تم إلغاء تنبيه أذكار النوم');
       }
     }
   }
@@ -258,7 +258,6 @@ class _AzkarScreenState extends State<AzkarScreen> {
       await prefs.setInt('${type}_hour', picked.hour);
       await prefs.setInt('${type}_minute', picked.minute);
 
-      // إلغاء الإشعار القديم وجدولة واحد جديد
       await NotificationService.cancelNotification(notificationId);
       await NotificationService.scheduleDailyNotification(
         id: notificationId,
@@ -283,27 +282,85 @@ class _AzkarScreenState extends State<AzkarScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('تم تغيير الوقت إلى ${picked.format(context)}'),
-            backgroundColor: Colors.blue,
-          ),
-        );
+        _showSuccessSnackBar('تم تغيير الوقت إلى ${picked.format(context)}');
       }
     });
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showInfoSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.info_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.blue,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('الأذكار')),
+      appBar: AppBar(
+        title: Text(
+          'الأذكار',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        ),
+        elevation: 0,
+        leading: InkWell(
+          onTap: () {
+            Navigator.pop(context);
+          },
+          child: Icon(Icons.arrow_back_ios),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Theme.of(context).primaryColor,
+                Theme.of(context).primaryColor.withOpacity(0.8),
+              ],
+            ),
+          ),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _buildAzkarCategory(
             title: 'أذكار الصباح',
+            subtitle: 'ابدأ يومك بالذكر والدعاء',
             icon: Icons.wb_sunny,
             color: Colors.orange,
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFA726), Color(0xFFFF6F00)],
+            ),
             azkarList: AzkarData.morningAzkar,
             notificationEnabled: morningNotificationEnabled,
             onNotificationToggle: _toggleMorningNotification,
@@ -313,8 +370,12 @@ class _AzkarScreenState extends State<AzkarScreen> {
           const SizedBox(height: 16),
           _buildAzkarCategory(
             title: 'أذكار المساء',
+            subtitle: 'اختم نهارك بذكر الله',
             icon: Icons.nights_stay,
             color: Colors.indigo,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF5C6BC0), Color(0xFF283593)],
+            ),
             azkarList: AzkarData.eveningAzkar,
             notificationEnabled: eveningNotificationEnabled,
             onNotificationToggle: _toggleEveningNotification,
@@ -324,8 +385,12 @@ class _AzkarScreenState extends State<AzkarScreen> {
           const SizedBox(height: 16),
           _buildAzkarCategory(
             title: 'أذكار النوم',
+            subtitle: 'استعد لنوم هادئ مطمئن',
             icon: Icons.bedtime,
             color: Colors.purple,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF9C27B0), Color(0xFF4A148C)],
+            ),
             azkarList: AzkarData.sleepAzkar,
             notificationEnabled: sleepNotificationEnabled,
             onNotificationToggle: _toggleSleepNotification,
@@ -335,9 +400,35 @@ class _AzkarScreenState extends State<AzkarScreen> {
           const SizedBox(height: 16),
           _buildAzkarCategory(
             title: 'أذكار بعد الصلاة',
+            subtitle: 'أذكار وأدعية دبر الصلوات',
             icon: Icons.mosque,
             color: Colors.teal,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF26A69A), Color(0xFF00695C)],
+            ),
             azkarList: AzkarData.afterPrayerAzkar,
+          ),
+          const SizedBox(height: 16),
+          _buildAzkarCategory(
+            title: 'أذكار السفر',
+            subtitle: 'دعاء السفر والرجوع',
+            icon: Icons.flight_takeoff,
+            color: Colors.blue,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF42A5F5), Color(0xFF1565C0)],
+            ),
+            azkarList: AzkarData.travelAzkar,
+          ),
+          const SizedBox(height: 16),
+          _buildAzkarCategory(
+            title: 'أذكار الطعام',
+            subtitle: 'أذكار قبل وبعد الطعام',
+            icon: Icons.restaurant,
+            color: Colors.brown,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF8D6E63), Color(0xFF5D4037)],
+            ),
+            azkarList: AzkarData.eatingAzkar,
           ),
         ],
       ),
@@ -346,132 +437,353 @@ class _AzkarScreenState extends State<AzkarScreen> {
 
   Widget _buildAzkarCategory({
     required String title,
+    required String subtitle,
     required IconData icon,
     required Color color,
+    required Gradient gradient,
     required List<Azkar> azkarList,
     bool? notificationEnabled,
     Function(bool)? onNotificationToggle,
     TimeOfDay? currentTime,
     VoidCallback? onChangeTime,
   }) {
-    return Card(
-      elevation: 4,
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          leading: CircleAvatar(
-            backgroundColor: color.withOpacity(0.2),
-            child: Icon(icon, color: color),
+    return Hero(
+      tag: title,
+      child: Card(
+        elevation: 8,
+        shadowColor: color.withOpacity(0.3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+              colors: [Colors.white, color.withOpacity(0.05)],
+            ),
           ),
-          title: Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          trailing: onNotificationToggle != null
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      notificationEnabled!
-                          ? Icons.notifications_active
-                          : Icons.notifications_off,
-                      color: notificationEnabled ? Colors.green : Colors.grey,
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.expand_more),
-                  ],
-                )
-              : null,
-          children: [
-            if (onNotificationToggle != null) ...[
-              SwitchListTile(
-                title: const Text('تفعيل التنبيه اليومي'),
-                subtitle: Text(
-                  notificationEnabled!
-                      ? 'سيصلك التنبيه يومياً الساعة ${currentTime!.format(context)}'
-                      : 'قم بتفعيل التنبيه لاختيار الوقت',
-                ),
-                value: notificationEnabled,
-                onChanged: onNotificationToggle,
-                activeThumbColor: color,
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
               ),
-              if (notificationEnabled && onChangeTime != null)
-                ListTile(
-                  leading: Icon(Icons.access_time, color: color),
-                  title: const Text('تغيير وقت التنبيه'),
-                  subtitle: Text(
-                    'الوقت الحالي: ${currentTime!.format(context)}',
-                  ),
-                  trailing: const Icon(Icons.edit),
-                  onTap: onChangeTime,
+              childrenPadding: const EdgeInsets.only(bottom: 16),
+              leading: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: gradient,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-              const Divider(),
-            ],
-            ...azkarList.map((azkar) => _buildAzkarItem(azkar, color)),
-          ],
+                child: Icon(icon, color: Colors.white, size: 28),
+              ),
+              title: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 13, color: Colors.black),
+                ),
+              ),
+              trailing: onNotificationToggle != null
+                  ? Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: notificationEnabled!
+                            ? Colors.green.withOpacity(0.1)
+                            : Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            notificationEnabled
+                                ? Icons.notifications_active
+                                : Icons.notifications_off,
+                            color: notificationEnabled
+                                ? Colors.green
+                                : Colors.grey,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.expand_more, size: 20),
+                        ],
+                      ),
+                    )
+                  : null,
+              children: [
+                if (onNotificationToggle != null) ...[
+                  Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: color.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      children: [
+                        SwitchListTile(
+                          title: Text(
+                            'تفعيل التنبيه اليومي',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: color,
+                            ),
+                          ),
+                          subtitle: Text(
+                            notificationEnabled!
+                                ? 'سيصلك التنبيه يومياً الساعة ${currentTime!.format(context)}'
+                                : 'قم بتفعيل التنبيه لاختيار الوقت',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          value: notificationEnabled,
+                          onChanged: onNotificationToggle,
+                          activeThumbColor: color,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                        if (notificationEnabled && onChangeTime != null)
+                          InkWell(
+                            onTap: onChangeTime,
+                            borderRadius: BorderRadius.circular(15),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: color.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Icon(
+                                      Icons.access_time,
+                                      color: color,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'تغيير وقت التنبيه',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: color,
+                                          ),
+                                        ),
+                                        Text(
+                                          'الوقت الحالي: ${currentTime!.format(context)}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(Icons.edit, color: color, size: 20),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.format_list_numbered,
+                              color: color,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${azkarList.length} ذكر',
+                              style: TextStyle(
+                                color: color,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...azkarList.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final azkar = entry.value;
+                  return _buildAzkarItem(azkar, color, gradient, index);
+                }),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildAzkarItem(Azkar azkar, Color color) {
-    return InkWell(
-      onTap: () => _showAzkarDetails(azkar, color),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    azkar.title,
-                    style: TextStyle(
-                      fontSize: 16,
+  Widget _buildAzkarItem(
+    Azkar azkar,
+    Color color,
+    Gradient gradient,
+    int index,
+  ) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: color.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () => _showAzkarDetails(azkar, color, gradient),
+        borderRadius: BorderRadius.circular(15),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: gradient,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      color: color,
+                      fontSize: 16,
                     ),
                   ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      azkar.zekr,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        height: 1.8,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (azkar.reference != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        azkar.reference!,
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                children: [
+                  if (azkar.countInt > 1)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: gradient,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        '${azkar.countInt}×',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 4),
-                  Text(
-                    azkar.content,
-                    style: const TextStyle(fontSize: 14),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Icon(Icons.arrow_forward_ios, color: color, size: 16),
                 ],
               ),
-            ),
-            if (azkar.repeatCount > 1)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${azkar.repeatCount}×',
-                  style: TextStyle(color: color, fontWeight: FontWeight.bold),
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  void _showAzkarDetails(Azkar azkar, Color color) {
+  void _showAzkarDetails(Azkar azkar, Color color, Gradient gradient) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => AzkarDetailsSheet(azkar: azkar, color: color),
+      backgroundColor: Colors.transparent,
+      builder: (context) =>
+          AzkarDetailsSheet(azkar: azkar, color: color, gradient: gradient),
     );
   }
 }
@@ -479,107 +791,325 @@ class _AzkarScreenState extends State<AzkarScreen> {
 class AzkarDetailsSheet extends StatefulWidget {
   final Azkar azkar;
   final Color color;
+  final Gradient gradient;
 
   const AzkarDetailsSheet({
     super.key,
     required this.azkar,
     required this.color,
+    required this.gradient,
   });
 
   @override
   State<AzkarDetailsSheet> createState() => _AzkarDetailsSheetState();
 }
 
-class _AzkarDetailsSheetState extends State<AzkarDetailsSheet> {
+class _AzkarDetailsSheetState extends State<AzkarDetailsSheet>
+    with SingleTickerProviderStateMixin {
   int currentCount = 0;
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      height: MediaQuery.of(context).size.height * 0.7,
-      child: Column(
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _incrementCount() {
+    if (currentCount < widget.azkar.countInt) {
+      _controller.forward().then((_) => _controller.reverse());
+      setState(() {
+        currentCount++;
+      });
+
+      if (currentCount == widget.azkar.countInt) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            _showCompletionDialog();
+          }
+        });
+      }
+    }
+  }
+
+  void _showCompletionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: widget.gradient,
           ),
-          const SizedBox(height: 20),
-          Text(
-            widget.azkar.title,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: widget.color,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Text(
-                widget.azkar.content,
-                style: const TextStyle(fontSize: 20, height: 2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Colors.white,
+                  size: 60,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'بارك الله فيك!',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'أكملت الذكر بنجاح ✨',
+                style: TextStyle(fontSize: 16, color: Colors.white),
                 textAlign: TextAlign.center,
               ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          if (widget.azkar.repeatCount > 1) ...[
-            Text(
-              '$currentCount / ${widget.azkar.repeatCount}',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: widget.color,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: currentCount < widget.azkar.repeatCount
-                  ? () {
-                      setState(() {
-                        currentCount++;
-                      });
-                      if (currentCount == widget.azkar.repeatCount) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('بارك الله فيك! أكملت الذكر ✨'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                    }
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: widget.color,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 48,
-                  vertical: 16,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              child: Text(
-                currentCount < widget.azkar.repeatCount ? 'سبّح' : 'اكتمل ✓',
-                style: const TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-            if (currentCount > 0)
-              TextButton(
+              const SizedBox(height: 24),
+              ElevatedButton(
                 onPressed: () {
+                  Navigator.pop(context);
                   setState(() {
                     currentCount = 0;
                   });
                 },
-                child: const Text('إعادة العداد'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: widget.color,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: const Text(
+                  'إعادة',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
-          ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = widget.azkar.countInt > 1
+        ? currentCount / widget.azkar.countInt
+        : 1.0;
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      child: Column(
+        children: [
+          // Handle
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            width: 50,
+            height: 5,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2.5),
+            ),
+          ),
+          // Header with Title and Close button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'تفاصيل الذكر',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: widget.color,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 28),
+                  color: widget.color,
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+
+          // Main Azkar Content (Scrollable)
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Azkar Text
+                  Text(
+                    widget.azkar.zekr,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      height: 2.0,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF303030),
+                      fontFamily:
+                          'Cairo', // نفترض استخدام خط القاهرة كما في ThemeData
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Reference and Description Container
+                  if (widget.azkar.reference != null ||
+                      widget.azkar.description != null)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: widget.color.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
+                          color: widget.color.withOpacity(0.1),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (widget.azkar.reference != null)
+                            Text(
+                              'المصدر: ${widget.azkar.reference!}',
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                color: widget.color,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          if (widget.azkar.reference != null &&
+                              widget.azkar.description != null)
+                            const Divider(height: 16, color: Colors.grey),
+                          if (widget.azkar.description != null)
+                            Text(
+                              widget.azkar.description!,
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                color: Colors.grey[700],
+                                fontSize: 14,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 100), // مساحة إضافية
+                ],
+              ),
+            ),
+          ),
+
+          // Progress Indicator
+          if (widget.azkar.countInt > 1)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 10,
+                  backgroundColor: widget.color.withOpacity(0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(widget.color),
+                ),
+              ),
+            ),
+
+          // Tap Counter Button
+          GestureDetector(
+            onTap: currentCount < widget.azkar.countInt
+                ? _incrementCount
+                : () {
+                    Navigator.pop(context);
+                    // لإعادة فتح نافذة الإكمال بعد الإغلاق
+                    _showCompletionDialog();
+                  },
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Container(
+                margin: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                decoration: BoxDecoration(
+                  // تغيير التدرج اللوني عند الإكمال
+                  gradient: currentCount < widget.azkar.countInt
+                      ? widget.gradient
+                      : const LinearGradient(
+                          colors: [Colors.green, Color(0xFF1B5E20)],
+                        ),
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color:
+                          (currentCount < widget.azkar.countInt
+                                  ? widget.color
+                                  : Colors.green)
+                              .withOpacity(0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      currentCount < widget.azkar.countInt
+                          ? 'انقر للتسبيح'
+                          : 'تم الإكمال! انقر للإنهاء',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$currentCount / ${widget.azkar.countInt}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Bottom padding to respect phone's safe area
+          SizedBox(height: MediaQuery.of(context).padding.bottom),
         ],
       ),
     );
