@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.najatak"
-    compileSdk = 34
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -24,8 +24,8 @@ android {
     defaultConfig {
         applicationId = "com.example.najatak"
         // minSdk 23 للتوافق مع الإشعارات
-        minSdk = 23
-        targetSdk = 34
+        minSdk = flutter.minSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         
