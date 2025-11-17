@@ -16,6 +16,10 @@ class _AzkarScreenState extends State<AzkarScreen> {
   bool eveningNotificationEnabled = false;
   bool sleepNotificationEnabled = false;
 
+  TimeOfDay morningTime = const TimeOfDay(hour: 7, minute: 0);
+  TimeOfDay eveningTime = const TimeOfDay(hour: 17, minute: 0);
+  TimeOfDay sleepTime = const TimeOfDay(hour: 22, minute: 0);
+
   @override
   void initState() {
     super.initState();
@@ -30,111 +34,262 @@ class _AzkarScreenState extends State<AzkarScreen> {
       eveningNotificationEnabled =
           prefs.getBool('evening_notification') ?? false;
       sleepNotificationEnabled = prefs.getBool('sleep_notification') ?? false;
+
+      // تحميل الأوقات المحفوظة
+      morningTime = TimeOfDay(
+        hour: prefs.getInt('morning_hour') ?? 7,
+        minute: prefs.getInt('morning_minute') ?? 0,
+      );
+      eveningTime = TimeOfDay(
+        hour: prefs.getInt('evening_hour') ?? 17,
+        minute: prefs.getInt('evening_minute') ?? 0,
+      );
+      sleepTime = TimeOfDay(
+        hour: prefs.getInt('sleep_hour') ?? 22,
+        minute: prefs.getInt('sleep_minute') ?? 0,
+      );
     });
   }
 
-  Future<void> _toggleMorningNotification(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('morning_notification', value);
-
-    if (value) {
-      // جدولة إشعار أذكار الصباح (الساعة 7 صباحاً)
-      await NotificationService.scheduleDailyNotification(
-        id: 100,
-        title: 'أذكار الصباح',
-        body: 'حان وقت أذكار الصباح 🌅',
-        hour: 7,
-        minute: 0,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم تفعيل تنبيه أذكار الصباح الساعة 7:00 ص'),
-          ),
+  Future<void> _selectTime(
+    BuildContext context,
+    TimeOfDay initialTime,
+    Function(TimeOfDay) onTimeSelected,
+  ) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: child!,
         );
-      }
+      },
+    );
+
+    if (picked != null) {
+      onTimeSelected(picked);
+    }
+  }
+
+  Future<void> _toggleMorningNotification(bool value) async {
+    if (value) {
+      // اختيار الوقت أولاً
+      await _selectTime(context, morningTime, (picked) async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('morning_notification', true);
+        await prefs.setInt('morning_hour', picked.hour);
+        await prefs.setInt('morning_minute', picked.minute);
+
+        await NotificationService.scheduleDailyNotification(
+          id: 100,
+          title: 'أذكار الصباح',
+          body: 'حان وقت أذكار الصباح 🌅',
+          hour: picked.hour,
+          minute: picked.minute,
+        );
+
+        setState(() {
+          morningTime = picked;
+          morningNotificationEnabled = true;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'تم تفعيل تنبيه أذكار الصباح الساعة ${picked.format(context)}',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      });
     } else {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('morning_notification', false);
       await NotificationService.cancelNotification(100);
+
+      setState(() {
+        morningNotificationEnabled = false;
+      });
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إلغاء تنبيه أذكار الصباح')),
         );
       }
     }
-
-    setState(() {
-      morningNotificationEnabled = value;
-    });
   }
 
   Future<void> _toggleEveningNotification(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('evening_notification', value);
-
     if (value) {
-      // جدولة إشعار أذكار المساء (الساعة 5 مساءً)
-      await NotificationService.scheduleDailyNotification(
-        id: 101,
-        title: 'أذكار المساء',
-        body: 'حان وقت أذكار المساء 🌙',
-        hour: 17,
-        minute: 0,
-      );
+      await _selectTime(context, eveningTime, (picked) async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('evening_notification', true);
+        await prefs.setInt('evening_hour', picked.hour);
+        await prefs.setInt('evening_minute', picked.minute);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم تفعيل تنبيه أذكار المساء الساعة 5:00 م'),
-          ),
+        await NotificationService.scheduleDailyNotification(
+          id: 101,
+          title: 'أذكار المساء',
+          body: 'حان وقت أذكار المساء 🌙',
+          hour: picked.hour,
+          minute: picked.minute,
         );
-      }
+
+        setState(() {
+          eveningTime = picked;
+          eveningNotificationEnabled = true;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'تم تفعيل تنبيه أذكار المساء الساعة ${picked.format(context)}',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      });
     } else {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('evening_notification', false);
       await NotificationService.cancelNotification(101);
+
+      setState(() {
+        eveningNotificationEnabled = false;
+      });
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إلغاء تنبيه أذكار المساء')),
         );
       }
     }
-
-    setState(() {
-      eveningNotificationEnabled = value;
-    });
   }
 
   Future<void> _toggleSleepNotification(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('sleep_notification', value);
-
     if (value) {
-      // جدولة إشعار أذكار النوم (الساعة 10 مساءً)
-      await NotificationService.scheduleDailyNotification(
-        id: 102,
-        title: 'أذكار النوم',
-        body: 'لا تنسى أذكار النوم قبل أن تنام 🌟',
-        hour: 22,
-        minute: 0,
-      );
+      await _selectTime(context, sleepTime, (picked) async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('sleep_notification', true);
+        await prefs.setInt('sleep_hour', picked.hour);
+        await prefs.setInt('sleep_minute', picked.minute);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم تفعيل تنبيه أذكار النوم الساعة 10:00 م'),
-          ),
+        await NotificationService.scheduleDailyNotification(
+          id: 102,
+          title: 'أذكار النوم',
+          body: 'لا تنسى أذكار النوم قبل أن تنام 🌟',
+          hour: picked.hour,
+          minute: picked.minute,
         );
-      }
+
+        setState(() {
+          sleepTime = picked;
+          sleepNotificationEnabled = true;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'تم تفعيل تنبيه أذكار النوم الساعة ${picked.format(context)}',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      });
     } else {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('sleep_notification', false);
       await NotificationService.cancelNotification(102);
+
+      setState(() {
+        sleepNotificationEnabled = false;
+      });
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إلغاء تنبيه أذكار النوم')),
         );
       }
     }
+  }
 
-    setState(() {
-      sleepNotificationEnabled = value;
+  Future<void> _changeTime(String type) async {
+    TimeOfDay initialTime;
+    int notificationId;
+    String title;
+    String body;
+    String emoji;
+
+    switch (type) {
+      case 'morning':
+        initialTime = morningTime;
+        notificationId = 100;
+        title = 'أذكار الصباح';
+        body = 'حان وقت أذكار الصباح';
+        emoji = '🌅';
+        break;
+      case 'evening':
+        initialTime = eveningTime;
+        notificationId = 101;
+        title = 'أذكار المساء';
+        body = 'حان وقت أذكار المساء';
+        emoji = '🌙';
+        break;
+      case 'sleep':
+        initialTime = sleepTime;
+        notificationId = 102;
+        title = 'أذكار النوم';
+        body = 'لا تنسى أذكار النوم قبل أن تنام';
+        emoji = '🌟';
+        break;
+      default:
+        return;
+    }
+
+    await _selectTime(context, initialTime, (picked) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('${type}_hour', picked.hour);
+      await prefs.setInt('${type}_minute', picked.minute);
+
+      // إلغاء الإشعار القديم وجدولة واحد جديد
+      await NotificationService.cancelNotification(notificationId);
+      await NotificationService.scheduleDailyNotification(
+        id: notificationId,
+        title: title,
+        body: '$body $emoji',
+        hour: picked.hour,
+        minute: picked.minute,
+      );
+
+      setState(() {
+        switch (type) {
+          case 'morning':
+            morningTime = picked;
+            break;
+          case 'evening':
+            eveningTime = picked;
+            break;
+          case 'sleep':
+            sleepTime = picked;
+            break;
+        }
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم تغيير الوقت إلى ${picked.format(context)}'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
     });
   }
 
@@ -152,6 +307,8 @@ class _AzkarScreenState extends State<AzkarScreen> {
             azkarList: AzkarData.morningAzkar,
             notificationEnabled: morningNotificationEnabled,
             onNotificationToggle: _toggleMorningNotification,
+            currentTime: morningTime,
+            onChangeTime: () => _changeTime('morning'),
           ),
           const SizedBox(height: 16),
           _buildAzkarCategory(
@@ -161,6 +318,8 @@ class _AzkarScreenState extends State<AzkarScreen> {
             azkarList: AzkarData.eveningAzkar,
             notificationEnabled: eveningNotificationEnabled,
             onNotificationToggle: _toggleEveningNotification,
+            currentTime: eveningTime,
+            onChangeTime: () => _changeTime('evening'),
           ),
           const SizedBox(height: 16),
           _buildAzkarCategory(
@@ -170,6 +329,8 @@ class _AzkarScreenState extends State<AzkarScreen> {
             azkarList: AzkarData.sleepAzkar,
             notificationEnabled: sleepNotificationEnabled,
             onNotificationToggle: _toggleSleepNotification,
+            currentTime: sleepTime,
+            onChangeTime: () => _changeTime('sleep'),
           ),
           const SizedBox(height: 16),
           _buildAzkarCategory(
@@ -190,6 +351,8 @@ class _AzkarScreenState extends State<AzkarScreen> {
     required List<Azkar> azkarList,
     bool? notificationEnabled,
     Function(bool)? onNotificationToggle,
+    TimeOfDay? currentTime,
+    VoidCallback? onChangeTime,
   }) {
     return Card(
       elevation: 4,
@@ -220,33 +383,35 @@ class _AzkarScreenState extends State<AzkarScreen> {
                 )
               : null,
           children: [
-            if (onNotificationToggle != null)
+            if (onNotificationToggle != null) ...[
               SwitchListTile(
                 title: const Text('تفعيل التنبيه اليومي'),
-                subtitle: Text(_getNotificationTime(title)),
-                value: notificationEnabled!,
+                subtitle: Text(
+                  notificationEnabled!
+                      ? 'سيصلك التنبيه يومياً الساعة ${currentTime!.format(context)}'
+                      : 'قم بتفعيل التنبيه لاختيار الوقت',
+                ),
+                value: notificationEnabled,
                 onChanged: onNotificationToggle,
                 activeThumbColor: color,
               ),
-            const Divider(),
+              if (notificationEnabled && onChangeTime != null)
+                ListTile(
+                  leading: Icon(Icons.access_time, color: color),
+                  title: const Text('تغيير وقت التنبيه'),
+                  subtitle: Text(
+                    'الوقت الحالي: ${currentTime!.format(context)}',
+                  ),
+                  trailing: const Icon(Icons.edit),
+                  onTap: onChangeTime,
+                ),
+              const Divider(),
+            ],
             ...azkarList.map((azkar) => _buildAzkarItem(azkar, color)),
           ],
         ),
       ),
     );
-  }
-
-  String _getNotificationTime(String category) {
-    switch (category) {
-      case 'أذكار الصباح':
-        return 'سيصلك التنبيه يومياً الساعة 7:00 صباحاً';
-      case 'أذكار المساء':
-        return 'سيصلك التنبيه يومياً الساعة 5:00 مساءً';
-      case 'أذكار النوم':
-        return 'سيصلك التنبيه يومياً الساعة 10:00 مساءً';
-      default:
-        return '';
-    }
   }
 
   Widget _buildAzkarItem(Azkar azkar, Color color) {

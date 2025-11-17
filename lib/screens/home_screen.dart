@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'azkar_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -13,6 +14,16 @@ class HomeScreen extends StatelessWidget {
           'التطبيق الإسلامي',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            ),
+            tooltip: 'الإعدادات',
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -36,30 +47,33 @@ class HomeScreen extends StatelessWidget {
               title: 'مواقيت الصلاة',
               icon: Icons.access_time,
               color: const Color(0xFF1565C0),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AzkarScreen()),
-              ),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('قريباً إن شاء الله')),
+                );
+              },
             ),
             _buildFeatureCard(
               context,
               title: 'اتجاه القبلة',
               icon: Icons.explore,
               color: const Color(0xFFD84315),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AzkarScreen()),
-              ),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('قريباً إن شاء الله')),
+                );
+              },
             ),
             _buildFeatureCard(
               context,
               title: 'القرآن الكريم',
               icon: Icons.menu_book,
               color: const Color(0xFF6A1B9A),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AzkarScreen()),
-              ),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('قريباً إن شاء الله')),
+                );
+              },
             ),
           ],
         ),
