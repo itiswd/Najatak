@@ -104,12 +104,14 @@ class _AzkarScreenState extends State<AzkarScreen>
         await prefs.setInt('morning_hour', picked.hour);
         await prefs.setInt('morning_minute', picked.minute);
 
+        // استخدام NotificationType.morning
         await NotificationService.scheduleDailyNotification(
           id: 100,
           title: 'أذكار الصباح',
-          body: 'حان وقت أذكار الصباح 🌅',
+          body: 'حان وقت أذكار الصباح',
           hour: picked.hour,
           minute: picked.minute,
+          type: NotificationType.morning,
         );
 
         setState(() {
@@ -149,9 +151,10 @@ class _AzkarScreenState extends State<AzkarScreen>
         await NotificationService.scheduleDailyNotification(
           id: 101,
           title: 'أذكار المساء',
-          body: 'حان وقت أذكار المساء 🌙',
+          body: 'حان وقت أذكار المساء',
           hour: picked.hour,
           minute: picked.minute,
+          type: NotificationType.evening,
         );
 
         setState(() {
@@ -191,9 +194,10 @@ class _AzkarScreenState extends State<AzkarScreen>
         await NotificationService.scheduleDailyNotification(
           id: 102,
           title: 'أذكار النوم',
-          body: 'لا تنسى أذكار النوم قبل أن تنام 🌟',
+          body: 'لا تنسى أذكار النوم قبل أن تنام',
           hour: picked.hour,
           minute: picked.minute,
+          type: NotificationType.sleep,
         );
 
         setState(() {
@@ -227,7 +231,7 @@ class _AzkarScreenState extends State<AzkarScreen>
     int notificationId;
     String title;
     String body;
-    String emoji;
+    NotificationType notifType;
 
     switch (type) {
       case 'morning':
@@ -235,21 +239,21 @@ class _AzkarScreenState extends State<AzkarScreen>
         notificationId = 100;
         title = 'أذكار الصباح';
         body = 'حان وقت أذكار الصباح';
-        emoji = '🌅';
+        notifType = NotificationType.morning;
         break;
       case 'evening':
         initialTime = eveningTime;
         notificationId = 101;
         title = 'أذكار المساء';
         body = 'حان وقت أذكار المساء';
-        emoji = '🌙';
+        notifType = NotificationType.evening;
         break;
       case 'sleep':
         initialTime = sleepTime;
         notificationId = 102;
         title = 'أذكار النوم';
         body = 'لا تنسى أذكار النوم قبل أن تنام';
-        emoji = '🌟';
+        notifType = NotificationType.sleep;
         break;
       default:
         return;
@@ -264,9 +268,10 @@ class _AzkarScreenState extends State<AzkarScreen>
       await NotificationService.scheduleDailyNotification(
         id: notificationId,
         title: title,
-        body: '$body $emoji',
+        body: body,
         hour: picked.hour,
         minute: picked.minute,
+        type: notifType,
       );
 
       setState(() {
@@ -336,10 +341,6 @@ class _AzkarScreenState extends State<AzkarScreen>
     );
   }
 
-  // ----------------------------------------------------------------
-  // الدوال الخاصة ببناء واجهة المستخدم (Widgets)
-  // ----------------------------------------------------------------
-
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       title: const Text(
@@ -366,7 +367,6 @@ class _AzkarScreenState extends State<AzkarScreen>
     );
   }
 
-  // دالة Build الرئيسية
   @override
   Widget build(BuildContext context) {
     return Scaffold(
