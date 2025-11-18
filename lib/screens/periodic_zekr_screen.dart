@@ -100,6 +100,8 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+
     setState(() {
       isEnabled = prefs.getBool('periodic_azkar_enabled') ?? false;
       intervalMinutes = prefs.getInt('periodic_azkar_interval') ?? 30;
@@ -121,6 +123,8 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
   }
 
   void _toggleAzkar(String id) {
+    if (!mounted) return;
+
     setState(() {
       if (selectedAzkar.contains(id)) {
         selectedAzkar.remove(id);
@@ -133,10 +137,13 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
 
   Future<void> _togglePeriodicNotifications(bool value) async {
     if (value && selectedAzkar.isEmpty) {
-      _showSnackBar('يرجى اختيار ذكر واحد على الأقل', Colors.orange);
+      if (mounted) {
+        _showSnackBar('يرجى اختيار ذكر واحد على الأقل', Colors.orange);
+      }
       return;
     }
 
+    if (!mounted) return;
     setState(() => isLoading = true);
 
     try {
@@ -151,6 +158,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
           intervalMinutes: intervalMinutes,
         );
 
+        if (!mounted) return;
         setState(() => isEnabled = true);
         await _saveSettings();
 
@@ -163,6 +171,8 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
         }
       } else {
         await NotificationService.cancelAllPeriodicNotifications();
+
+        if (!mounted) return;
         setState(() => isEnabled = false);
         await _saveSettings();
 
@@ -171,13 +181,19 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
         }
       }
     } catch (e) {
-      _showSnackBar('حدث خطأ: $e', Colors.red);
+      if (mounted) {
+        _showSnackBar('حدث خطأ: $e', Colors.red);
+      }
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
   Future<void> _showIntervalPicker() async {
+    if (!mounted) return;
+
     final intervals = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180];
 
     await showDialog(
@@ -198,12 +214,15 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                     ? const Icon(Icons.check_circle, color: Color(0xFF1B5E20))
                     : null,
                 onTap: () {
+                  if (!mounted) return;
                   setState(() => intervalMinutes = minutes);
                   Navigator.pop(context);
                   _saveSettings();
                   if (isEnabled) {
                     _togglePeriodicNotifications(false).then((_) {
-                      _togglePeriodicNotifications(true);
+                      if (mounted) {
+                        _togglePeriodicNotifications(true);
+                      }
                     });
                   }
                 },
@@ -216,6 +235,8 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
   }
 
   void _showSnackBar(String message, Color color) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
