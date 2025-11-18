@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -60,7 +58,7 @@ class NotificationService {
         >();
 
     if (androidImplementation != null) {
-      // قناة أذكار الصباح
+      // قناة أذكار الصباح (بدون اهتزاز)
       await androidImplementation.createNotificationChannel(
         AndroidNotificationChannel(
           'morning_azkar_channel',
@@ -68,22 +66,14 @@ class NotificationService {
           description: 'إشعارات أذكار الصباح',
           importance: Importance.max,
           playSound: true,
-          enableVibration: false,
+          enableVibration: false, // إلغاء الاهتزاز
           enableLights: true,
-          ledColor: Color(0xFFFFA726), // لون برتقالي
-          vibrationPattern: Int64List.fromList([
-            0,
-            500,
-            200,
-            500,
-          ]), // نمط اهتزاز مميز
-          sound: RawResourceAndroidNotificationSound(
-            'morning_sound',
-          ), // صوت مخصص
+          ledColor: Color(0xFFFFA726),
+          sound: RawResourceAndroidNotificationSound('morning_sound'),
         ),
       );
 
-      // قناة أذكار المساء
+      // قناة أذكار المساء (بدون اهتزاز)
       await androidImplementation.createNotificationChannel(
         AndroidNotificationChannel(
           'evening_azkar_channel',
@@ -91,15 +81,14 @@ class NotificationService {
           description: 'إشعارات أذكار المساء',
           importance: Importance.max,
           playSound: true,
-          enableVibration: false,
+          enableVibration: false, // إلغاء الاهتزاز
           enableLights: true,
-          ledColor: Color(0xFF5C6BC0), // لون أزرق
-          vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
+          ledColor: Color(0xFF5C6BC0),
           sound: RawResourceAndroidNotificationSound('evening_sound'),
         ),
       );
 
-      // قناة أذكار النوم
+      // قناة أذكار النوم (بدون اهتزاز)
       await androidImplementation.createNotificationChannel(
         AndroidNotificationChannel(
           'sleep_azkar_channel',
@@ -107,11 +96,25 @@ class NotificationService {
           description: 'إشعارات أذكار النوم',
           importance: Importance.max,
           playSound: true,
-          enableVibration: false,
+          enableVibration: false, // إلغاء الاهتزاز
           enableLights: true,
-          ledColor: Color(0xFF9C27B0), // لون بنفسجي
-          vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
+          ledColor: Color(0xFF9C27B0),
           sound: RawResourceAndroidNotificationSound('sleep_sound'),
+        ),
+      );
+
+      // قناة الأذكار الدورية (بدون اهتزاز)
+      await androidImplementation.createNotificationChannel(
+        AndroidNotificationChannel(
+          'periodic_azkar_channel',
+          'الأذكار الدورية',
+          description: 'إشعارات الأذكار الدورية المخصصة',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: false, // إلغاء الاهتزاز
+          enableLights: true,
+          ledColor: Color(0xFF1B5E20),
+          sound: RawResourceAndroidNotificationSound('default_sound'),
         ),
       );
     }
@@ -119,7 +122,7 @@ class NotificationService {
     debugPrint('✅ تم إنشاء قنوات الإشعارات بنجاح');
   }
 
-  // إرسال إشعار فوري بتصميم احترافي
+  // إرسال إشعار فوري بتصميم احترافي (بدون اهتزاز)
   static Future<void> showNotification({
     required int id,
     required String title,
@@ -136,7 +139,7 @@ class NotificationService {
           importance: Importance.max,
           priority: Priority.high,
           playSound: true,
-          enableVibration: true,
+          enableVibration: false, // إلغاء الاهتزاز
           enableLights: true,
           color: color ?? const Color(0xFF1B5E20),
           icon: '@mipmap/launcher_icon',
@@ -146,7 +149,6 @@ class NotificationService {
           ongoing: false,
           autoCancel: true,
           fullScreenIntent: true,
-          // تصميم Big Text Style للنصوص الطويلة
           styleInformation: BigTextStyleInformation(
             body,
             htmlFormatBigText: true,
@@ -155,7 +157,6 @@ class NotificationService {
             summaryText: 'نَجَاتَك',
             htmlFormatSummaryText: true,
           ),
-          // أزرار الإجراءات
           actions: <AndroidNotificationAction>[
             const AndroidNotificationAction(
               'open_app',
@@ -193,7 +194,7 @@ class NotificationService {
     debugPrint('تم إرسال إشعار فوري - ID: $id');
   }
 
-  // جدولة إشعار يومي بتصميم احترافي
+  // جدولة إشعار يومي بتصميم احترافي (بدون اهتزاز)
   static Future<void> scheduleDailyNotification({
     required int id,
     required String title,
@@ -206,7 +207,6 @@ class NotificationService {
     try {
       await _notifications.cancel(id);
 
-      // اختيار القناة والإعدادات حسب نوع الذكر
       String channelId;
       Color color;
       String emoji;
@@ -227,6 +227,11 @@ class NotificationService {
           color = const Color(0xFF9C27B0);
           emoji = '🌟';
           break;
+        case NotificationType.periodic:
+          channelId = 'periodic_azkar_channel';
+          color = const Color(0xFF1B5E20);
+          emoji = '📿';
+          break;
       }
 
       final AndroidNotificationDetails androidDetails =
@@ -237,7 +242,7 @@ class NotificationService {
             importance: Importance.max,
             priority: Priority.high,
             playSound: true,
-            enableVibration: false,
+            enableVibration: false, // إلغاء الاهتزاز
             enableLights: true,
             color: color,
             icon: '@mipmap/launcher_icon',
@@ -274,8 +279,8 @@ class NotificationService {
 
       await _notifications.zonedSchedule(
         id,
-        '$title$emoji',
-        '$body$emoji',
+        '$title $emoji',
+        '$body $emoji',
         scheduledDate,
         notificationDetails,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -289,6 +294,76 @@ class NotificationService {
     }
   }
 
+  // جدولة إشعار متسلسل (يظهر بعد وقت محدد ويتكرر)
+  static Future<void> scheduleSequentialNotification({
+    required int id,
+    required String title,
+    required String body,
+    required int delayMinutes, // التأخير قبل أول ظهور
+    required int intervalMinutes, // الفاصل بين التكرار
+    String? payload,
+  }) async {
+    try {
+      await _notifications.cancel(id);
+
+      AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'periodic_azkar_channel',
+        'الأذكار الدورية',
+        channelDescription: 'إشعارات الأذكار الدورية المخصصة',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: false,
+        enableLights: true,
+        color: Color(0xFF1B5E20),
+        icon: '@mipmap/launcher_icon',
+        largeIcon: DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
+        ongoing: false,
+        autoCancel: true,
+        styleInformation: BigTextStyleInformation(
+          body,
+          htmlFormatBigText: true,
+          contentTitle: title,
+          htmlFormatContentTitle: true,
+          summaryText: 'نَجَاتَك',
+        ),
+      );
+
+      NotificationDetails notificationDetails = NotificationDetails(
+        android: androidDetails,
+      );
+
+      // حساب وقت أول إشعار
+      final now = tz.TZDateTime.now(tz.local);
+      final scheduledDate = now.add(Duration(minutes: delayMinutes));
+
+      // جدولة الإشعار مع التكرار
+      await _notifications.zonedSchedule(
+        id,
+        '$title 📿',
+        '$body 📿',
+        scheduledDate,
+        notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload: payload,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+
+      debugPrint('═══════════════════════════════════════');
+      debugPrint('📅 جدولة إشعار متسلسل:');
+      debugPrint('   ID: $id');
+      debugPrint('   العنوان: $title');
+      debugPrint('   التأخير: $delayMinutes دقيقة');
+      debugPrint('   التكرار: كل $intervalMinutes دقيقة');
+      debugPrint(
+        '   أول ظهور: ${scheduledDate.hour}:${scheduledDate.minute.toString().padLeft(2, '0')}',
+      );
+      debugPrint('═══════════════════════════════════════');
+    } catch (e) {
+      debugPrint('❌ خطأ في جدولة الإشعار المتسلسل: $e');
+    }
+  }
+
   static String _getChannelName(NotificationType type) {
     switch (type) {
       case NotificationType.morning:
@@ -297,6 +372,8 @@ class NotificationService {
         return 'أذكار المساء';
       case NotificationType.sleep:
         return 'أذكار النوم';
+      case NotificationType.periodic:
+        return 'الأذكار الدورية';
     }
   }
 
@@ -344,45 +421,7 @@ class NotificationService {
       color: const Color(0xFF1B5E20),
     );
   }
-
-  static Future<void> testScheduledNotification() async {
-    final now = tz.TZDateTime.now(tz.local);
-    final scheduledTime = now.add(const Duration(minutes: 1));
-
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-          'morning_azkar_channel',
-          'أذكار الصباح',
-          importance: Importance.max,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-          color: Color(0xFFFFA726),
-          icon: '@mipmap/launcher_icon',
-          largeIcon: DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
-          styleInformation: BigTextStyleInformation(
-            '⏰ سيظهر هذا الإشعار بعد دقيقة واحدة',
-            contentTitle: '🧪 اختبار إشعار مجدول',
-            summaryText: 'نَجَاتَك',
-          ),
-        );
-
-    const NotificationDetails notificationDetails = NotificationDetails(
-      android: androidDetails,
-    );
-
-    await _notifications.zonedSchedule(
-      998,
-      '🧪 اختبار إشعار مجدول',
-      '⏰ سيظهر هذا الإشعار بعد دقيقة واحدة',
-      scheduledTime,
-      notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-    );
-
-    debugPrint('✅ تم جدولة إشعار تجريبي بعد دقيقة واحدة');
-  }
 }
 
 // نوع الإشعار (Enum)
-enum NotificationType { morning, evening, sleep }
+enum NotificationType { morning, evening, sleep, periodic }
