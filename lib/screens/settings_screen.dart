@@ -11,35 +11,19 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen>
-    with SingleTickerProviderStateMixin {
+class _SettingsScreenState extends State<SettingsScreen> {
   List<PendingNotificationRequest> pendingNotifications = [];
   bool isLoading = false;
-  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
     _loadPendingNotifications();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadPendingNotifications() async {
-    setState(() {
-      isLoading = true;
-    });
-
+    setState(() => isLoading = true);
     final notifications = await NotificationService.getPendingNotifications();
-
     setState(() {
       pendingNotifications = notifications;
       isLoading = false;
@@ -53,17 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              color: Colors.orange.shade700,
-              size: 28,
-            ),
-            const SizedBox(width: 12),
-            const Expanded(child: Text('تأكيد الإلغاء')),
-          ],
-        ),
+        title: const Text('تأكيد الإلغاء'),
         content: Text('هل تريد إلغاء تنبيه "$notificationName"؟'),
         actions: [
           TextButton(
@@ -76,7 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen>
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('نعم، إلغاء'),
+            child: const Text('نعم'),
           ),
         ],
       ),
@@ -85,7 +59,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     if (confirm == true) {
       await NotificationService.cancelNotification(id);
 
-      // تحديث SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       if (id == 100) {
         await prefs.setBool('morning_notification', false);
@@ -96,9 +69,8 @@ class _SettingsScreenState extends State<SettingsScreen>
       }
 
       await _loadPendingNotifications();
-
       if (mounted) {
-        _showSuccessSnackBar('تم إلغاء تنبيه "$notificationName"');
+        _showSnackBar('تم إلغاء تنبيه "$notificationName"', Colors.green);
       }
     }
   }
@@ -110,47 +82,9 @@ class _SettingsScreenState extends State<SettingsScreen>
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.red.shade50,
-        title: Row(
-          children: [
-            Icon(Icons.delete_forever, color: Colors.red, size: 28),
-            const SizedBox(width: 12),
-            const Expanded(child: Text('تأكيد')),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'هل أنت متأكد من إلغاء جميع الإشعارات المجدولة؟',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade100,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.red.shade300),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.red.shade700),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'سيتم إلغاء ${pendingNotifications.length} إشعار',
-                      style: TextStyle(
-                        color: Colors.red.shade700,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+        title: const Text('تأكيد'),
+        content: Text(
+          'هل تريد إلغاء جميع الإشعارات؟\n\nسيتم إلغاء ${pendingNotifications.length} إشعار',
         ),
         actions: [
           TextButton(
@@ -172,31 +106,24 @@ class _SettingsScreenState extends State<SettingsScreen>
     if (confirm == true) {
       await NotificationService.cancelAllNotifications();
 
-      // تحديث SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('morning_notification', false);
       await prefs.setBool('evening_notification', false);
       await prefs.setBool('sleep_notification', false);
+      await prefs.setBool('periodic_azkar_enabled', false);
 
       await _loadPendingNotifications();
-
       if (mounted) {
-        _showSuccessSnackBar('تم إلغاء جميع الإشعارات بنجاح');
+        _showSnackBar('تم إلغاء جميع الإشعارات', Colors.green);
       }
     }
   }
 
-  void _showSuccessSnackBar(String message) {
+  void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green,
+        content: Text(message),
+        backgroundColor: color,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.all(16),
@@ -205,66 +132,32 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   String _getNotificationName(int id) {
-    switch (id) {
-      case 100:
-        return 'أذكار الصباح';
-      case 101:
-        return 'أذكار المساء';
-      case 102:
-        return 'أذكار النوم';
-      default:
-        return 'إشعار مخصص';
-    }
+    if (id == 100) return 'أذكار الصباح';
+    if (id == 101) return 'أذكار المساء';
+    if (id == 102) return 'أذكار النوم';
+    if (id >= 500) return 'ذكر دوري';
+    return 'إشعار';
   }
 
   IconData _getNotificationIcon(int id) {
-    switch (id) {
-      case 100:
-        return Icons.wb_sunny;
-      case 101:
-        return Icons.nights_stay;
-      case 102:
-        return Icons.bedtime;
-      default:
-        return Icons.notifications;
-    }
+    if (id == 100) return Icons.wb_sunny;
+    if (id == 101) return Icons.nights_stay;
+    if (id == 102) return Icons.bedtime;
+    return Icons.repeat;
   }
 
   Color _getNotificationColor(int id) {
-    switch (id) {
-      case 100:
-        return Colors.orange;
-      case 101:
-        return Colors.indigo;
-      case 102:
-        return Colors.purple;
-      default:
-        return Colors.teal;
-    }
-  }
-
-  String _getNotificationEmoji(int id) {
-    switch (id) {
-      case 100:
-        return '🌅';
-      case 101:
-        return '🌙';
-      case 102:
-        return '🌟';
-      default:
-        return '🔔';
-    }
+    if (id == 100) return Colors.orange;
+    if (id == 101) return Colors.indigo;
+    if (id == 102) return Colors.purple;
+    return const Color(0xFF1B5E20);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'إدارة الإشعارات',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        elevation: 0,
+        title: const Text('إدارة الإشعارات'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
@@ -284,50 +177,26 @@ class _SettingsScreenState extends State<SettingsScreen>
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () async {
               await _loadPendingNotifications();
-              if (mounted) {
-                _showSuccessSnackBar('تم تحديث القائمة');
-              }
+              if (mounted) _showSnackBar('تم تحديث القائمة', Colors.blue);
             },
-            tooltip: 'تحديث',
           ),
         ],
       ),
       body: isLoading
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(
-                    color: Theme.of(context).primaryColor,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'جاري التحميل...',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                ],
-              ),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadPendingNotifications,
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // إحصائيات سريعة
                   _buildStatisticsCard(),
                   const SizedBox(height: 20),
-
-                  // قائمة الإشعارات المجدولة
                   _buildNotificationsSection(),
                   const SizedBox(height: 20),
-
-                  // قسم الإجراءات السريعة
                   if (pendingNotifications.isNotEmpty) ...[
                     _buildQuickActions(),
                     const SizedBox(height: 20),
                   ],
-
-                  // معلومات مفيدة
                   _buildHelpSection(),
                 ],
               ),
@@ -338,78 +207,68 @@ class _SettingsScreenState extends State<SettingsScreen>
   Widget _buildStatisticsCard() {
     return Card(
       elevation: 8,
-      shadowColor: Theme.of(context).primaryColor.withAlpha(51),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
             colors: [
               Theme.of(context).primaryColor,
               Theme.of(context).primaryColor.withAlpha(204),
             ],
           ),
         ),
-        child: Column(
+        child: Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(51),
-                    borderRadius: BorderRadius.circular(15),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(51),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: const Icon(
+                Icons.notifications_active,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'الإشعارات النشطة',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
                   ),
-                  child: const Icon(
-                    Icons.notifications_active,
-                    color: Colors.white,
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'الإشعارات النشطة',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${pendingNotifications.length}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: pendingNotifications.isEmpty
-                        ? Colors.red.withAlpha(179)
-                        : Colors.green.withAlpha(179),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    pendingNotifications.isEmpty ? 'معطل' : 'نشط',
+                  const SizedBox(height: 4),
+                  Text(
+                    '${pendingNotifications.length}',
                     style: const TextStyle(
                       color: Colors.white,
+                      fontSize: 36,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: pendingNotifications.isEmpty
+                    ? Colors.red.withAlpha(179)
+                    : Colors.green.withAlpha(179),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                pendingNotifications.isEmpty ? 'معطل' : 'نشط',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -444,9 +303,17 @@ class _SettingsScreenState extends State<SettingsScreen>
             if (pendingNotifications.isEmpty)
               _buildEmptyState()
             else
-              ...pendingNotifications.map((notification) {
-                return _buildNotificationCard(notification);
-              }),
+              ...pendingNotifications.take(10).map(_buildNotificationCard),
+            if (pendingNotifications.length > 10)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Center(
+                  child: Text(
+                    'و ${pendingNotifications.length - 10} إشعار آخر',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -459,7 +326,6 @@ class _SettingsScreenState extends State<SettingsScreen>
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         children: [
@@ -492,173 +358,36 @@ class _SettingsScreenState extends State<SettingsScreen>
     final color = _getNotificationColor(notification.id);
     final icon = _getNotificationIcon(notification.id);
     final name = _getNotificationName(notification.id);
-    final emoji = _getNotificationEmoji(notification.id);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: color.withAlpha(13),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: color.withAlpha(51), width: 1.5),
+        border: Border.all(color: color.withAlpha(51)),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(15),
-          onTap: () => _showNotificationDetails(notification),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [color, color.withAlpha(179)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withAlpha(77),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 28),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            name,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: color,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(emoji, style: const TextStyle(fontSize: 16)),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        notification.body ?? '',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade700,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withAlpha(25),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.check_circle,
-                        color: Colors.green,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                      onPressed: () => _cancelNotification(notification.id),
-                      tooltip: 'إلغاء',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withAlpha(25),
+            borderRadius: BorderRadius.circular(10),
           ),
+          child: Icon(icon, color: color),
         ),
-      ),
-    );
-  }
-
-  void _showNotificationDetails(PendingNotificationRequest notification) {
-    final color = _getNotificationColor(notification.id);
-    final icon = _getNotificationIcon(notification.id);
-    final name = _getNotificationName(notification.id);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withAlpha(25),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Text(name)),
-          ],
+        title: Text(
+          name,
+          style: TextStyle(fontWeight: FontWeight.bold, color: color),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDetailRow('العنوان', notification.title ?? 'غير محدد'),
-            const Divider(),
-            _buildDetailRow('الرسالة', notification.body ?? 'غير محددة'),
-            const Divider(),
-            _buildDetailRow('معرف الإشعار', notification.id.toString()),
-          ],
+        subtitle: Text(
+          notification.body ?? '',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إغلاق'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              _cancelNotification(notification.id);
-            },
-            icon: const Icon(Icons.delete),
-            label: const Text('إلغاء الإشعار'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
-        ],
+        trailing: IconButton(
+          icon: const Icon(Icons.delete_outline, color: Colors.red),
+          onPressed: () => _cancelNotification(notification.id),
+        ),
       ),
     );
   }
@@ -680,41 +409,15 @@ class _SettingsScreenState extends State<SettingsScreen>
                   size: 28,
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'إجراءات خطرة',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
+                const Text(
+                  'إجراءات خطرة',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade100,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.red.shade300),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.red.shade700),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'سيتم إلغاء جميع الإشعارات المجدولة',
-                      style: TextStyle(
-                        color: Colors.red.shade700,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -722,10 +425,7 @@ class _SettingsScreenState extends State<SettingsScreen>
               child: ElevatedButton.icon(
                 onPressed: _cancelAllNotifications,
                 icon: const Icon(Icons.delete_forever),
-                label: const Text(
-                  'إلغاء جميع الإشعارات',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                label: const Text('إلغاء جميع الإشعارات'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
@@ -733,7 +433,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
-                  elevation: 2,
                 ),
               ),
             ),
@@ -774,13 +473,8 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
             _buildInfoItem(
               icon: Icons.repeat,
-              text: 'يتم تكرار الإشعارات يومياً في نفس الوقت',
+              text: 'يتم تكرار الإشعارات حسب الإعدادات المحددة',
               color: Colors.blue,
-            ),
-            _buildInfoItem(
-              icon: Icons.edit,
-              text: 'يمكنك تعديل أوقات الإشعارات من صفحة الأذكار',
-              color: Colors.orange,
             ),
             _buildInfoItem(
               icon: Icons.battery_alert,
@@ -812,12 +506,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             child: Icon(icon, size: 18, color: color),
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(height: 1.5, fontSize: 14),
-            ),
-          ),
+          Expanded(child: Text(text, style: const TextStyle(height: 1.5))),
         ],
       ),
     );
