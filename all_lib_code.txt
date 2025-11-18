@@ -1,17 +1,16 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'screens/home_screen.dart';
 import 'services/notification_service.dart';
 
-// تهيئة إشعارات
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // تهيئة خدمة الإشعارات
   await NotificationService.initialize();
 
   runApp(const Najatak());
@@ -23,11 +22,18 @@ class Najatak extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'تطبيق إسلامي',
+      title: 'نَجَاتَك',
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('ar', ''), Locale('en', '')],
+      locale: const Locale('ar', ''),
       theme: ThemeData(
         primarySwatch: Colors.teal,
-        fontFamily: 'Cairo', // يمكن إضافة خط عربي جميل
+        fontFamily: 'Cairo',
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF1B5E20),
           brightness: Brightness.light,
@@ -941,6 +947,8 @@ class AzkarData {
   }
 }
 import 'package:flutter/material.dart';
+import 'package:najatak/widgets/azkar_category_widget.dart';
+import 'package:najatak/widgets/azkar_details_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/azkar_model.dart';
@@ -953,19 +961,32 @@ class AzkarScreen extends StatefulWidget {
   State<AzkarScreen> createState() => _AzkarScreenState();
 }
 
-class _AzkarScreenState extends State<AzkarScreen> {
+class _AzkarScreenState extends State<AzkarScreen>
+    with SingleTickerProviderStateMixin {
   bool morningNotificationEnabled = false;
   bool eveningNotificationEnabled = false;
   bool sleepNotificationEnabled = false;
 
-  TimeOfDay morningTime = const TimeOfDay(hour: 7, minute: 0);
-  TimeOfDay eveningTime = const TimeOfDay(hour: 17, minute: 0);
+  TimeOfDay morningTime = const TimeOfDay(hour: 6, minute: 0);
+  TimeOfDay eveningTime = const TimeOfDay(hour: 16, minute: 30);
   TimeOfDay sleepTime = const TimeOfDay(hour: 22, minute: 0);
+
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -977,14 +998,13 @@ class _AzkarScreenState extends State<AzkarScreen> {
           prefs.getBool('evening_notification') ?? false;
       sleepNotificationEnabled = prefs.getBool('sleep_notification') ?? false;
 
-      // تحميل الأوقات المحفوظة
       morningTime = TimeOfDay(
-        hour: prefs.getInt('morning_hour') ?? 7,
+        hour: prefs.getInt('morning_hour') ?? 6,
         minute: prefs.getInt('morning_minute') ?? 0,
       );
       eveningTime = TimeOfDay(
-        hour: prefs.getInt('evening_hour') ?? 17,
-        minute: prefs.getInt('evening_minute') ?? 0,
+        hour: prefs.getInt('evening_hour') ?? 16,
+        minute: prefs.getInt('evening_minute') ?? 30,
       );
       sleepTime = TimeOfDay(
         hour: prefs.getInt('sleep_hour') ?? 22,
@@ -1002,9 +1022,19 @@ class _AzkarScreenState extends State<AzkarScreen> {
       context: context,
       initialTime: initialTime,
       builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-          child: child!,
+        return Theme(
+          data: Theme.of(context).copyWith(
+            timePickerTheme: TimePickerThemeData(
+              backgroundColor: Colors.white,
+              hourMinuteShape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+          ),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child!,
+          ),
         );
       },
     );
@@ -1016,19 +1046,20 @@ class _AzkarScreenState extends State<AzkarScreen> {
 
   Future<void> _toggleMorningNotification(bool value) async {
     if (value) {
-      // اختيار الوقت أولاً
       await _selectTime(context, morningTime, (picked) async {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('morning_notification', true);
         await prefs.setInt('morning_hour', picked.hour);
         await prefs.setInt('morning_minute', picked.minute);
 
+        // استخدام NotificationType.morning
         await NotificationService.scheduleDailyNotification(
           id: 100,
           title: 'أذكار الصباح',
-          body: 'حان وقت أذكار الصباح 🌅',
+          body: 'حان وقت أذكار الصباح',
           hour: picked.hour,
           minute: picked.minute,
+          type: NotificationType.morning,
         );
 
         setState(() {
@@ -1037,13 +1068,8 @@ class _AzkarScreenState extends State<AzkarScreen> {
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'تم تفعيل تنبيه أذكار الصباح الساعة ${picked.format(context)}',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          _showSuccessSnackBar(
+            'تم تفعيل تنبيه أذكار الصباح الساعة ${picked.format(context)}',
           );
         }
       });
@@ -1057,9 +1083,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إلغاء تنبيه أذكار الصباح')),
-        );
+        _showInfoSnackBar('تم إلغاء تنبيه أذكار الصباح');
       }
     }
   }
@@ -1075,9 +1099,10 @@ class _AzkarScreenState extends State<AzkarScreen> {
         await NotificationService.scheduleDailyNotification(
           id: 101,
           title: 'أذكار المساء',
-          body: 'حان وقت أذكار المساء 🌙',
+          body: 'حان وقت أذكار المساء',
           hour: picked.hour,
           minute: picked.minute,
+          type: NotificationType.evening,
         );
 
         setState(() {
@@ -1086,13 +1111,8 @@ class _AzkarScreenState extends State<AzkarScreen> {
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'تم تفعيل تنبيه أذكار المساء الساعة ${picked.format(context)}',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          _showSuccessSnackBar(
+            'تم تفعيل تنبيه أذكار المساء الساعة ${picked.format(context)}',
           );
         }
       });
@@ -1106,9 +1126,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إلغاء تنبيه أذكار المساء')),
-        );
+        _showInfoSnackBar('تم إلغاء تنبيه أذكار المساء');
       }
     }
   }
@@ -1124,9 +1142,10 @@ class _AzkarScreenState extends State<AzkarScreen> {
         await NotificationService.scheduleDailyNotification(
           id: 102,
           title: 'أذكار النوم',
-          body: 'لا تنسى أذكار النوم قبل أن تنام 🌟',
+          body: 'لا تنسى أذكار النوم قبل أن تنام',
           hour: picked.hour,
           minute: picked.minute,
+          type: NotificationType.sleep,
         );
 
         setState(() {
@@ -1135,13 +1154,8 @@ class _AzkarScreenState extends State<AzkarScreen> {
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'تم تفعيل تنبيه أذكار النوم الساعة ${picked.format(context)}',
-              ),
-              backgroundColor: Colors.green,
-            ),
+          _showSuccessSnackBar(
+            'تم تفعيل تنبيه أذكار النوم الساعة ${picked.format(context)}',
           );
         }
       });
@@ -1155,9 +1169,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إلغاء تنبيه أذكار النوم')),
-        );
+        _showInfoSnackBar('تم إلغاء تنبيه أذكار النوم');
       }
     }
   }
@@ -1167,7 +1179,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
     int notificationId;
     String title;
     String body;
-    String emoji;
+    NotificationType notifType;
 
     switch (type) {
       case 'morning':
@@ -1175,21 +1187,21 @@ class _AzkarScreenState extends State<AzkarScreen> {
         notificationId = 100;
         title = 'أذكار الصباح';
         body = 'حان وقت أذكار الصباح';
-        emoji = '🌅';
+        notifType = NotificationType.morning;
         break;
       case 'evening':
         initialTime = eveningTime;
         notificationId = 101;
         title = 'أذكار المساء';
         body = 'حان وقت أذكار المساء';
-        emoji = '🌙';
+        notifType = NotificationType.evening;
         break;
       case 'sleep':
         initialTime = sleepTime;
         notificationId = 102;
         title = 'أذكار النوم';
         body = 'لا تنسى أذكار النوم قبل أن تنام';
-        emoji = '🌟';
+        notifType = NotificationType.sleep;
         break;
       default:
         return;
@@ -1200,14 +1212,14 @@ class _AzkarScreenState extends State<AzkarScreen> {
       await prefs.setInt('${type}_hour', picked.hour);
       await prefs.setInt('${type}_minute', picked.minute);
 
-      // إلغاء الإشعار القديم وجدولة واحد جديد
       await NotificationService.cancelNotification(notificationId);
       await NotificationService.scheduleDailyNotification(
         id: notificationId,
         title: title,
-        body: '$body $emoji',
+        body: body,
         hour: picked.hour,
         minute: picked.minute,
+        type: notifType,
       );
 
       setState(() {
@@ -1225,303 +1237,174 @@ class _AzkarScreenState extends State<AzkarScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('تم تغيير الوقت إلى ${picked.format(context)}'),
-            backgroundColor: Colors.blue,
-          ),
-        );
+        _showSuccessSnackBar('تم تغيير الوقت إلى ${picked.format(context)}');
       }
     });
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showInfoSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.info_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.blue,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _showAzkarDetails(Azkar azkar, Color color, Gradient gradient) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) =>
+          AzkarDetailsSheet(azkar: azkar, color: color, gradient: gradient),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      title: const Text(
+        'الأذكار',
+        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+      ),
+      elevation: 0,
+      leading: InkWell(
+        onTap: () {
+          Navigator.pop(context);
+        },
+        child: const Icon(Icons.arrow_back_ios),
+      ),
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).primaryColor,
+              Theme.of(context).primaryColor.withAlpha(204),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('الأذكار')),
+      appBar: _buildAppBar(),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildAzkarCategory(
+          AzkarCategoryWidget(
             title: 'أذكار الصباح',
+            subtitle: 'ابدأ يومك بالذكر والدعاء',
             icon: Icons.wb_sunny,
             color: Colors.orange,
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFA726), Color(0xFFFF6F00)],
+            ),
             azkarList: AzkarData.morningAzkar,
             notificationEnabled: morningNotificationEnabled,
             onNotificationToggle: _toggleMorningNotification,
             currentTime: morningTime,
             onChangeTime: () => _changeTime('morning'),
+            onAzkarItemTap: _showAzkarDetails,
           ),
           const SizedBox(height: 16),
-          _buildAzkarCategory(
+          AzkarCategoryWidget(
             title: 'أذكار المساء',
+            subtitle: 'اختم نهارك بذكر الله',
             icon: Icons.nights_stay,
             color: Colors.indigo,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF5C6BC0), Color(0xFF283593)],
+            ),
             azkarList: AzkarData.eveningAzkar,
             notificationEnabled: eveningNotificationEnabled,
             onNotificationToggle: _toggleEveningNotification,
             currentTime: eveningTime,
             onChangeTime: () => _changeTime('evening'),
+            onAzkarItemTap: _showAzkarDetails,
           ),
           const SizedBox(height: 16),
-          _buildAzkarCategory(
+          AzkarCategoryWidget(
             title: 'أذكار النوم',
+            subtitle: 'استعد لنوم هادئ مطمئن',
             icon: Icons.bedtime,
             color: Colors.purple,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF9C27B0), Color(0xFF4A148C)],
+            ),
             azkarList: AzkarData.sleepAzkar,
             notificationEnabled: sleepNotificationEnabled,
             onNotificationToggle: _toggleSleepNotification,
             currentTime: sleepTime,
             onChangeTime: () => _changeTime('sleep'),
+            onAzkarItemTap: _showAzkarDetails,
           ),
           const SizedBox(height: 16),
-          _buildAzkarCategory(
+          AzkarCategoryWidget(
             title: 'أذكار بعد الصلاة',
+            subtitle: 'أذكار وأدعية دبر الصلوات',
             icon: Icons.mosque,
             color: Colors.teal,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF26A69A), Color(0xFF00695C)],
+            ),
             azkarList: AzkarData.afterPrayerAzkar,
+            onAzkarItemTap: _showAzkarDetails,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAzkarCategory({
-    required String title,
-    required IconData icon,
-    required Color color,
-    required List<Azkar> azkarList,
-    bool? notificationEnabled,
-    Function(bool)? onNotificationToggle,
-    TimeOfDay? currentTime,
-    VoidCallback? onChangeTime,
-  }) {
-    return Card(
-      elevation: 4,
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          leading: CircleAvatar(
-            backgroundColor: color.withAlpha(51),
-            child: Icon(icon, color: color),
+          const SizedBox(height: 16),
+          AzkarCategoryWidget(
+            title: 'أذكار السفر',
+            subtitle: 'دعاء السفر والرجوع',
+            icon: Icons.flight_takeoff,
+            color: Colors.blue,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF42A5F5), Color(0xFF1565C0)],
+            ),
+            azkarList: AzkarData.travelAzkar,
+            onAzkarItemTap: _showAzkarDetails,
           ),
-          title: Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          const SizedBox(height: 16),
+          AzkarCategoryWidget(
+            title: 'أذكار الطعام',
+            subtitle: 'أذكار قبل وبعد الطعام',
+            icon: Icons.restaurant,
+            color: Colors.brown,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF8D6E63), Color(0xFF5D4037)],
+            ),
+            azkarList: AzkarData.eatingAzkar,
+            onAzkarItemTap: _showAzkarDetails,
           ),
-          trailing: onNotificationToggle != null
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      notificationEnabled!
-                          ? Icons.notifications_active
-                          : Icons.notifications_off,
-                      color: notificationEnabled ? Colors.green : Colors.grey,
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.expand_more),
-                  ],
-                )
-              : null,
-          children: [
-            if (onNotificationToggle != null) ...[
-              SwitchListTile(
-                title: const Text('تفعيل التنبيه اليومي'),
-                subtitle: Text(
-                  notificationEnabled!
-                      ? 'سيصلك التنبيه يومياً الساعة ${currentTime!.format(context)}'
-                      : 'قم بتفعيل التنبيه لاختيار الوقت',
-                ),
-                value: notificationEnabled,
-                onChanged: onNotificationToggle,
-                activeThumbColor: color,
-              ),
-              if (notificationEnabled && onChangeTime != null)
-                ListTile(
-                  leading: Icon(Icons.access_time, color: color),
-                  title: const Text('تغيير وقت التنبيه'),
-                  subtitle: Text(
-                    'الوقت الحالي: ${currentTime!.format(context)}',
-                  ),
-                  trailing: const Icon(Icons.edit),
-                  onTap: onChangeTime,
-                ),
-              const Divider(),
-            ],
-            ...azkarList.map((azkar) => _buildAzkarItem(azkar, color)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAzkarItem(Azkar azkar, Color color) {
-    return InkWell(
-      onTap: () => _showAzkarDetails(azkar, color),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    azkar.title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    azkar.content,
-                    style: const TextStyle(fontSize: 14),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            if (azkar.repeatCount > 1)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: color.withAlpha(51),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${azkar.repeatCount}×',
-                  style: TextStyle(color: color, fontWeight: FontWeight.bold),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAzkarDetails(Azkar azkar, Color color) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => AzkarDetailsSheet(azkar: azkar, color: color),
-    );
-  }
-}
-
-class AzkarDetailsSheet extends StatefulWidget {
-  final Azkar azkar;
-  final Color color;
-
-  const AzkarDetailsSheet({
-    super.key,
-    required this.azkar,
-    required this.color,
-  });
-
-  @override
-  State<AzkarDetailsSheet> createState() => _AzkarDetailsSheetState();
-}
-
-class _AzkarDetailsSheetState extends State<AzkarDetailsSheet> {
-  int currentCount = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      height: MediaQuery.of(context).size.height * 0.7,
-      child: Column(
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            widget.azkar.title,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: widget.color,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Text(
-                widget.azkar.content,
-                style: const TextStyle(fontSize: 20, height: 2),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          if (widget.azkar.repeatCount > 1) ...[
-            Text(
-              '$currentCount / ${widget.azkar.repeatCount}',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: widget.color,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: currentCount < widget.azkar.repeatCount
-                  ? () {
-                      setState(() {
-                        currentCount++;
-                      });
-                      if (currentCount == widget.azkar.repeatCount) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('بارك الله فيك! أكملت الذكر ✨'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                    }
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: widget.color,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 48,
-                  vertical: 16,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              child: Text(
-                currentCount < widget.azkar.repeatCount ? 'سبّح' : 'اكتمل ✓',
-                style: const TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-            if (currentCount > 0)
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    currentCount = 0;
-                  });
-                },
-                child: const Text('إعادة العداد'),
-              ),
-          ],
         ],
       ),
     );
@@ -1540,12 +1423,12 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'التطبيق الإسلامي',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          'نَجَاتَك',
+          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.edit_notifications),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const SettingsScreen()),
@@ -1573,7 +1456,7 @@ class HomeScreen extends StatelessWidget {
             ),
             _buildFeatureCard(
               context,
-              title: 'مواقيت الصلاة',
+              title: 'مواقيت\nالصلاة',
               icon: Icons.access_time,
               color: const Color(0xFF1565C0),
               onTap: () {
@@ -1584,7 +1467,7 @@ class HomeScreen extends StatelessWidget {
             ),
             _buildFeatureCard(
               context,
-              title: 'اتجاه القبلة',
+              title: 'اتجاه\nالقبلة',
               icon: Icons.explore,
               color: const Color(0xFFD84315),
               onTap: () {
@@ -1595,7 +1478,7 @@ class HomeScreen extends StatelessWidget {
             ),
             _buildFeatureCard(
               context,
-              title: 'القرآن الكريم',
+              title: 'القرآن\nالكريم',
               icon: Icons.menu_book,
               color: const Color(0xFF6A1B9A),
               onTap: () {
@@ -1629,18 +1512,18 @@ class HomeScreen extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [color, color.withAlpha(0.7)],
+              colors: [color, color.withAlpha(179)],
             ),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 60, color: Colors.white),
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -1655,6 +1538,7 @@ class HomeScreen extends StatelessWidget {
 }
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/notification_service.dart';
 
@@ -1665,14 +1549,26 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen>
+    with SingleTickerProviderStateMixin {
   List<PendingNotificationRequest> pendingNotifications = [];
   bool isLoading = false;
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
     _loadPendingNotifications();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadPendingNotifications() async {
@@ -1688,48 +1584,124 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  Future<void> _testNotification() async {
-    await NotificationService.testNotification();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم إرسال إشعار تجريبي فوري'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
+  Future<void> _cancelNotification(int id) async {
+    final notificationName = _getNotificationName(id);
 
-  Future<void> _testScheduledNotification() async {
-    await NotificationService.testScheduledNotification();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم جدولة إشعار تجريبي بعد دقيقة واحدة ⏰'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 3),
-        ),
-      );
-    }
-    // تحديث القائمة
-    await Future.delayed(const Duration(seconds: 1));
-    await _loadPendingNotifications();
-  }
-
-  Future<void> _cancelAllNotifications() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('تأكيد'),
-        content: const Text('هل تريد إلغاء جميع الإشعارات المجدولة؟'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.orange.shade700,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('تأكيد الإلغاء')),
+          ],
+        ),
+        content: Text('هل تريد إلغاء تنبيه "$notificationName"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('لا'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('نعم، إلغاء'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await NotificationService.cancelNotification(id);
+
+      // تحديث SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      if (id == 100) {
+        await prefs.setBool('morning_notification', false);
+      } else if (id == 101) {
+        await prefs.setBool('evening_notification', false);
+      } else if (id == 102) {
+        await prefs.setBool('sleep_notification', false);
+      }
+
+      await _loadPendingNotifications();
+
+      if (mounted) {
+        _showSuccessSnackBar('تم إلغاء تنبيه "$notificationName"');
+      }
+    }
+  }
+
+  Future<void> _cancelAllNotifications() async {
+    if (pendingNotifications.isEmpty) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.red.shade50,
+        title: Row(
+          children: [
+            Icon(Icons.delete_forever, color: Colors.red, size: 28),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('تأكيد')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'هل أنت متأكد من إلغاء جميع الإشعارات المجدولة؟',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade100,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.shade300),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.red.shade700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'سيتم إلغاء ${pendingNotifications.length} إشعار',
+                      style: TextStyle(
+                        color: Colors.red.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('إلغاء'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('نعم', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('نعم، إلغاء الكل'),
           ),
         ],
       ),
@@ -1737,16 +1709,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (confirm == true) {
       await NotificationService.cancelAllNotifications();
+
+      // تحديث SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('morning_notification', false);
+      await prefs.setBool('evening_notification', false);
+      await prefs.setBool('sleep_notification', false);
+
       await _loadPendingNotifications();
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم إلغاء جميع الإشعارات'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        _showSuccessSnackBar('تم إلغاء جميع الإشعارات بنجاح');
       }
     }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   String _getNotificationName(int id) {
@@ -1788,331 +1781,589 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  String _getNotificationEmoji(int id) {
+    switch (id) {
+      case 100:
+        return '🌅';
+      case 101:
+        return '🌙';
+      case 102:
+        return '🌟';
+      default:
+        return '🔔';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('الإعدادات'),
+        title: const Text(
+          'إدارة الإشعارات',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () => Navigator.pop(context),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Theme.of(context).primaryColor,
+                Theme.of(context).primaryColor.withAlpha(204),
+              ],
+            ),
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadPendingNotifications,
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () async {
+              await _loadPendingNotifications();
+              if (mounted) {
+                _showSuccessSnackBar('تم تحديث القائمة');
+              }
+            },
             tooltip: 'تحديث',
           ),
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    color: Theme.of(context).primaryColor,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'جاري التحميل...',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadPendingNotifications,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // إحصائيات سريعة
+                  _buildStatisticsCard(),
+                  const SizedBox(height: 20),
+
+                  // قائمة الإشعارات المجدولة
+                  _buildNotificationsSection(),
+                  const SizedBox(height: 20),
+
+                  // قسم الإجراءات السريعة
+                  if (pendingNotifications.isNotEmpty) ...[
+                    _buildQuickActions(),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // معلومات مفيدة
+                  _buildHelpSection(),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _buildStatisticsCard() {
+    return Card(
+      elevation: 8,
+      shadowColor: Theme.of(context).primaryColor.withAlpha(51),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).primaryColor,
+              Theme.of(context).primaryColor.withAlpha(204),
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            Row(
               children: [
-                // قسم الاختبار
-                Card(
-                  elevation: 4,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.science,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'اختبار الإشعارات',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'تأكد من أن الإشعارات تعمل بشكل صحيح',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _testNotification,
-                            icon: const Icon(Icons.send),
-                            label: const Text('إرسال إشعار فوري'),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.all(16),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _testScheduledNotification,
-                            icon: const Icon(Icons.schedule),
-                            label: const Text('اختبار إشعار مجدول (بعد دقيقة)'),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.all(16),
-                              backgroundColor: Colors.orange,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(51),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: const Icon(
+                    Icons.notifications_active,
+                    color: Colors.white,
+                    size: 32,
                   ),
                 ),
-
-                const SizedBox(height: 16),
-
-                // قسم الإشعارات المجدولة
-                Card(
-                  elevation: 4,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.schedule,
-                                  color: Theme.of(context).primaryColor,
-                                ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'الإشعارات المجدولة',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).primaryColor.withAlpha(51),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                '${pendingNotifications.length}',
-                                style: TextStyle(
-                                  color: Theme.of(context).primaryColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        if (pendingNotifications.isEmpty)
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Text(
-                                'لا توجد إشعارات مجدولة حالياً',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            ),
-                          )
-                        else
-                          ...pendingNotifications.map((notification) {
-                            final color = _getNotificationColor(
-                              notification.id,
-                            );
-                            final icon = _getNotificationIcon(notification.id);
-                            final name = _getNotificationName(notification.id);
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: color.withAlpha(25),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: color.withAlpha(77),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    backgroundColor: color.withAlpha(51),
-                                    child: Icon(icon, color: color),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          name,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: color,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          notification.body ?? '',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                    size: 20,
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // قسم الإجراءات
-                if (pendingNotifications.isNotEmpty)
-                  Card(
-                    elevation: 4,
-                    color: Colors.red.shade50,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.warning_amber_rounded,
-                            color: Colors.red,
-                            size: 40,
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'منطقة خطرة',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'سيؤدي هذا إلى إلغاء جميع الإشعارات المجدولة',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _cancelAllNotifications,
-                              icon: const Icon(Icons.delete_forever),
-                              label: const Text('إلغاء جميع الإشعارات'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.all(16),
-                              ),
-                            ),
-                          ),
-                        ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'الإشعارات النشطة',
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${pendingNotifications.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-
-                const SizedBox(height: 16),
-
-                // معلومات إضافية
-                Card(
-                  elevation: 4,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'ملاحظات مهمة',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _buildInfoItem(
-                          icon: Icons.check_circle_outline,
-                          text:
-                              'الإشعارات ستعمل حتى لو كان التطبيق مغلقاً تماماً',
-                        ),
-                        _buildInfoItem(
-                          icon: Icons.check_circle_outline,
-                          text: 'ستتكرر الإشعارات يومياً في نفس الوقت',
-                        ),
-                        _buildInfoItem(
-                          icon: Icons.check_circle_outline,
-                          text: 'يمكنك تغيير وقت أي إشعار من صفحة الأذكار',
-                        ),
-                        _buildInfoItem(
-                          icon: Icons.warning_amber_rounded,
-                          text: 'تأكد من عدم تفعيل وضع توفير البطارية للتطبيق',
-                          color: Colors.orange,
-                        ),
-                      ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: pendingNotifications.isEmpty
+                        ? Colors.red.withAlpha(179)
+                        : Colors.green.withAlpha(179),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    pendingNotifications.isEmpty ? 'معطل' : 'نشط',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationsSection() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.schedule_rounded,
+                  color: Theme.of(context).primaryColor,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'الإشعارات المجدولة',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (pendingNotifications.isEmpty)
+              _buildEmptyState()
+            else
+              ...pendingNotifications.map((notification) {
+                return _buildNotificationCard(notification);
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.notifications_off_outlined,
+            size: 64,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'لا توجد إشعارات مجدولة',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'قم بتفعيل الإشعارات من صفحة الأذكار',
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationCard(PendingNotificationRequest notification) {
+    final color = _getNotificationColor(notification.id);
+    final icon = _getNotificationIcon(notification.id);
+    final name = _getNotificationName(notification.id);
+    final emoji = _getNotificationEmoji(notification.id);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: color.withAlpha(13),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: color.withAlpha(51), width: 1.5),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(15),
+          onTap: () => _showNotificationDetails(notification),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [color, color.withAlpha(179)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withAlpha(77),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: color,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(emoji, style: const TextStyle(fontSize: 16)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        notification.body ?? '',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade700,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withAlpha(25),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.check_circle,
+                        color: Colors.green,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      onPressed: () => _cancelNotification(notification.id),
+                      tooltip: 'إلغاء',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showNotificationDetails(PendingNotificationRequest notification) {
+    final color = _getNotificationColor(notification.id);
+    final icon = _getNotificationIcon(notification.id);
+    final name = _getNotificationName(notification.id);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withAlpha(25),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(name)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetailRow('العنوان', notification.title ?? 'غير محدد'),
+            const Divider(),
+            _buildDetailRow('الرسالة', notification.body ?? 'غير محددة'),
+            const Divider(),
+            _buildDetailRow('معرف الإشعار', notification.id.toString()),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إغلاق'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _cancelNotification(notification.id);
+            },
+            icon: const Icon(Icons.delete),
+            label: const Text('إلغاء الإشعار'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label: ',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActions() {
+    return Card(
+      elevation: 4,
+      color: Colors.red.shade50,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.red.shade700,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'إجراءات خطرة',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade100,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.shade300),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.red.shade700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'سيتم إلغاء جميع الإشعارات المجدولة',
+                      style: TextStyle(
+                        color: Colors.red.shade700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _cancelAllNotifications,
+                icon: const Icon(Icons.delete_forever),
+                label: const Text(
+                  'إلغاء جميع الإشعارات',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.all(16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  elevation: 2,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHelpSection() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.help_outline_rounded,
+                  color: Theme.of(context).primaryColor,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'معلومات مفيدة',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildInfoItem(
+              icon: Icons.check_circle_outline,
+              text: 'تعمل الإشعارات حتى لو كان التطبيق مغلقاً',
+              color: Colors.green,
+            ),
+            _buildInfoItem(
+              icon: Icons.repeat,
+              text: 'يتم تكرار الإشعارات يومياً في نفس الوقت',
+              color: Colors.blue,
+            ),
+            _buildInfoItem(
+              icon: Icons.edit,
+              text: 'يمكنك تعديل أوقات الإشعارات من صفحة الأذكار',
+              color: Colors.orange,
+            ),
+            _buildInfoItem(
+              icon: Icons.battery_alert,
+              text: 'تأكد من عدم تفعيل وضع توفير البطارية للتطبيق',
+              color: Colors.red,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildInfoItem({
     required IconData icon,
     required String text,
-    Color? color,
+    required Color color,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: color ?? Colors.green),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text, style: const TextStyle(height: 1.5))),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withAlpha(25),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(height: 1.5, fontSize: 14),
+            ),
+          ),
         ],
       ),
     );
   }
 }
-import 'dart:ui';
+import 'dart:typed_data';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -2124,10 +2375,9 @@ class NotificationService {
   static Future<void> initialize() async {
     // تهيئة المناطق الزمنية
     tz.initializeTimeZones();
-
-    // تعيين المنطقة الزمنية المحلية (القاهرة لمصر)
     tz.setLocalLocation(tz.getLocation('Africa/Cairo'));
 
+    // إعدادات Android مع تصميم احترافي
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -2150,6 +2400,9 @@ class NotificationService {
       },
     );
 
+    // إنشاء قنوات الإشعارات بأصوات مخصصة
+    await _createNotificationChannels();
+
     // طلب الصلاحيات للأندرويد 13+
     final androidImplementation = _notifications
         .resolvePlatformSpecificImplementation<
@@ -2157,27 +2410,90 @@ class NotificationService {
         >();
 
     if (androidImplementation != null) {
-      final granted = await androidImplementation
-          .requestNotificationsPermission();
-      debugPrint('صلاحية الإشعارات: $granted');
-
-      // طلب صلاحية الإشعارات الدقيقة للأندرويد 12+
-      final exactAlarmGranted = await androidImplementation
-          .requestExactAlarmsPermission();
-      debugPrint('صلاحية الإشعارات الدقيقة: $exactAlarmGranted');
+      await androidImplementation.requestNotificationsPermission();
+      await androidImplementation.requestExactAlarmsPermission();
     }
   }
 
-  // إرسال إشعار فوري
+  // إنشاء قنوات مخصصة لكل نوع من الأذكار
+  static Future<void> _createNotificationChannels() async {
+    final androidImplementation = _notifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    if (androidImplementation != null) {
+      // قناة أذكار الصباح
+      await androidImplementation.createNotificationChannel(
+        AndroidNotificationChannel(
+          'morning_azkar_channel',
+          'أذكار الصباح',
+          description: 'إشعارات أذكار الصباح',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          ledColor: Color(0xFFFFA726), // لون برتقالي
+          vibrationPattern: Int64List.fromList([
+            0,
+            500,
+            200,
+            500,
+          ]), // نمط اهتزاز مميز
+          sound: RawResourceAndroidNotificationSound(
+            'morning_sound',
+          ), // صوت مخصص
+        ),
+      );
+
+      // قناة أذكار المساء
+      await androidImplementation.createNotificationChannel(
+        AndroidNotificationChannel(
+          'evening_azkar_channel',
+          'أذكار المساء',
+          description: 'إشعارات أذكار المساء',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          ledColor: Color(0xFF5C6BC0), // لون أزرق
+          vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
+          sound: RawResourceAndroidNotificationSound('evening_sound'),
+        ),
+      );
+
+      // قناة أذكار النوم
+      await androidImplementation.createNotificationChannel(
+        AndroidNotificationChannel(
+          'sleep_azkar_channel',
+          'أذكار النوم',
+          description: 'إشعارات أذكار النوم',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          ledColor: Color(0xFF9C27B0), // لون بنفسجي
+          vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
+          sound: RawResourceAndroidNotificationSound('sleep_sound'),
+        ),
+      );
+    }
+
+    debugPrint('✅ تم إنشاء قنوات الإشعارات بنجاح');
+  }
+
+  // إرسال إشعار فوري بتصميم احترافي
   static Future<void> showNotification({
     required int id,
     required String title,
     required String body,
     String? payload,
+    String channelId = 'islamic_app_channel',
+    Color? color,
   }) async {
-    const AndroidNotificationDetails androidDetails =
+    final AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'islamic_app_channel',
+          channelId,
           'الأذكار والصلاة',
           channelDescription: 'إشعارات الأذكار ومواقيت الصلاة',
           importance: Importance.max,
@@ -2185,11 +2501,35 @@ class NotificationService {
           playSound: true,
           enableVibration: true,
           enableLights: true,
-          color: Color(0xFF1B5E20),
+          color: color ?? const Color(0xFF1B5E20),
           icon: '@mipmap/ic_launcher',
+          largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
           ongoing: false,
           autoCancel: true,
           fullScreenIntent: true,
+          // تصميم Big Text Style للنصوص الطويلة
+          styleInformation: BigTextStyleInformation(
+            body,
+            htmlFormatBigText: true,
+            contentTitle: title,
+            htmlFormatContentTitle: true,
+            summaryText: 'نَجَاتَك',
+            htmlFormatSummaryText: true,
+          ),
+          // أزرار الإجراءات
+          actions: <AndroidNotificationAction>[
+            const AndroidNotificationAction(
+              'open_app',
+              'فتح التطبيق',
+              icon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+              showsUserInterface: true,
+            ),
+            const AndroidNotificationAction(
+              'dismiss',
+              'تجاهل',
+              cancelNotification: true,
+            ),
+          ],
         );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -2198,7 +2538,7 @@ class NotificationService {
       presentSound: true,
     );
 
-    const NotificationDetails notificationDetails = NotificationDetails(
+    final NotificationDetails notificationDetails = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
@@ -2214,7 +2554,7 @@ class NotificationService {
     debugPrint('تم إرسال إشعار فوري - ID: $id');
   }
 
-  // جدولة إشعار يومي (هذه الدالة الأساسية للأذكار)
+  // جدولة إشعار يومي بتصميم احترافي
   static Future<void> scheduleDailyNotification({
     required int id,
     required String title,
@@ -2222,29 +2562,77 @@ class NotificationService {
     required int hour,
     required int minute,
     String? payload,
+    required NotificationType type,
   }) async {
     try {
-      // إلغاء أي إشعار قديم بنفس ID
       await _notifications.cancel(id);
-      debugPrint('تم إلغاء الإشعار القديم - ID: $id');
 
-      const AndroidNotificationDetails androidDetails =
+      // اختيار القناة والإعدادات حسب نوع الذكر
+      String channelId;
+      Color color;
+      String emoji;
+
+      switch (type) {
+        case NotificationType.morning:
+          channelId = 'morning_azkar_channel';
+          color = const Color(0xFFFFA726);
+          emoji = '🌅';
+          break;
+        case NotificationType.evening:
+          channelId = 'evening_azkar_channel';
+          color = const Color(0xFF5C6BC0);
+          emoji = '🌙';
+          break;
+        case NotificationType.sleep:
+          channelId = 'sleep_azkar_channel';
+          color = const Color(0xFF9C27B0);
+          emoji = '🌟';
+          break;
+      }
+
+      final AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
-            'islamic_app_channel',
-            'الأذكار والصلاة',
-            channelDescription: 'إشعارات الأذكار ومواقيت الصلاة',
+            channelId,
+            _getChannelName(type),
+            channelDescription: 'إشعارات ${_getChannelName(type)}',
             importance: Importance.max,
             priority: Priority.high,
             playSound: true,
             enableVibration: true,
             enableLights: true,
-            color: Color(0xFF1B5E20),
+            color: color,
             icon: '@mipmap/ic_launcher',
+            largeIcon: const DrawableResourceAndroidBitmap(
+              '@mipmap/ic_launcher',
+            ),
             ongoing: false,
             autoCancel: true,
             fullScreenIntent: true,
             channelShowBadge: true,
             showWhen: true,
+            // تصميم Big Text مع الرموز التعبيرية
+            styleInformation: BigTextStyleInformation(
+              '$emoji $body',
+              htmlFormatBigText: true,
+              contentTitle: '$emoji $title',
+              htmlFormatContentTitle: true,
+              summaryText: 'نَجَاتَك - تطبيق الأذكار',
+              htmlFormatSummaryText: true,
+            ),
+            // أزرار الإجراءات
+            actions: <AndroidNotificationAction>[
+              const AndroidNotificationAction(
+                'open_azkar',
+                'عرض الأذكار',
+                icon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+                showsUserInterface: true,
+              ),
+              const AndroidNotificationAction(
+                'dismiss',
+                'حسناً',
+                cancelNotification: true,
+              ),
+            ],
           );
 
       const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -2253,27 +2641,25 @@ class NotificationService {
         presentSound: true,
       );
 
-      const NotificationDetails notificationDetails = NotificationDetails(
+      final NotificationDetails notificationDetails = NotificationDetails(
         android: androidDetails,
         iOS: iosDetails,
       );
 
-      // حساب الوقت التالي للإشعار
       final scheduledDate = _nextInstanceOfTime(hour, minute);
 
       debugPrint('═══════════════════════════════════════');
       debugPrint('📅 جدولة إشعار جديد:');
+      debugPrint('   النوع: ${_getChannelName(type)}');
       debugPrint('   ID: $id');
       debugPrint('   العنوان: $title');
-      debugPrint('   الوقت المطلوب: $hour:${minute.toString().padLeft(2, '0')}');
-      debugPrint('   الوقت المجدول: ${scheduledDate.toString()}');
-      debugPrint('   الوقت الحالي: ${tz.TZDateTime.now(tz.local).toString()}');
+      debugPrint('   الوقت: $hour:${minute.toString().padLeft(2, '0')}');
       debugPrint('═══════════════════════════════════════');
 
       await _notifications.zonedSchedule(
         id,
-        title,
-        body,
+        '$emoji $title',
+        '$emoji $body',
         scheduledDate,
         notificationDetails,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -2282,19 +2668,22 @@ class NotificationService {
       );
 
       debugPrint('✅ تم جدولة الإشعار بنجاح!');
-
-      // التحقق من الإشعارات المجدولة
-      final pending = await _notifications.pendingNotificationRequests();
-      debugPrint('📋 عدد الإشعارات المجدولة الآن: ${pending.length}');
-      for (var p in pending) {
-        debugPrint('   - ID: ${p.id}, العنوان: ${p.title}');
-      }
     } catch (e) {
       debugPrint('❌ خطأ في جدولة الإشعار: $e');
     }
   }
 
-  // حساب الوقت التالي للإشعار
+  static String _getChannelName(NotificationType type) {
+    switch (type) {
+      case NotificationType.morning:
+        return 'أذكار الصباح';
+      case NotificationType.evening:
+        return 'أذكار المساء';
+      case NotificationType.sleep:
+        return 'أذكار النوم';
+    }
+  }
+
   static tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
     tz.TZDateTime scheduledDate = tz.TZDateTime(
@@ -2307,69 +2696,59 @@ class NotificationService {
       0,
     );
 
-    // إذا كان الوقت قد مضى اليوم، جدول للغد
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
-      debugPrint('⏭️ الوقت مضى اليوم، سيتم الجدولة للغد');
-    } else {
-      debugPrint('⏰ سيتم الجدولة لنفس اليوم');
     }
 
     return scheduledDate;
   }
 
-  // إلغاء إشعار محدد
   static Future<void> cancelNotification(int id) async {
     await _notifications.cancel(id);
     debugPrint('🗑️ تم إلغاء الإشعار رقم: $id');
   }
 
-  // إلغاء جميع الإشعارات
   static Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
     debugPrint('🗑️ تم إلغاء جميع الإشعارات');
   }
 
-  // الحصول على قائمة الإشعارات المجدولة
   static Future<List<PendingNotificationRequest>>
   getPendingNotifications() async {
     final pending = await _notifications.pendingNotificationRequests();
     debugPrint('📋 عدد الإشعارات المجدولة: ${pending.length}');
-    for (var notification in pending) {
-      debugPrint('   - ID: ${notification.id}, العنوان: ${notification.title}');
-    }
     return pending;
   }
 
-  // دالة اختبار لإرسال إشعار فوري
   static Future<void> testNotification() async {
     await showNotification(
       id: 999,
       title: 'إشعار تجريبي',
       body: 'الإشعارات تعمل بشكل صحيح! ✓',
+      color: const Color(0xFF1B5E20),
     );
   }
 
-  // دالة جديدة: اختبار إشعار مجدول بعد دقيقة واحدة
   static Future<void> testScheduledNotification() async {
     final now = tz.TZDateTime.now(tz.local);
     final scheduledTime = now.add(const Duration(minutes: 1));
 
-    debugPrint('═══════════════════════════════════════');
-    debugPrint('🧪 اختبار إشعار مجدول:');
-    debugPrint('   الوقت الحالي: ${now.toString()}');
-    debugPrint('   الوقت المجدول: ${scheduledTime.toString()}');
-    debugPrint('═══════════════════════════════════════');
-
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'islamic_app_channel',
-          'الأذكار والصلاة',
-          channelDescription: 'إشعارات الأذكار ومواقيت الصلاة',
+          'morning_azkar_channel',
+          'أذكار الصباح',
           importance: Importance.max,
           priority: Priority.high,
           playSound: true,
           enableVibration: true,
+          color: Color(0xFFFFA726),
+          icon: '@mipmap/ic_launcher',
+          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+          styleInformation: BigTextStyleInformation(
+            '⏰ سيظهر هذا الإشعار بعد دقيقة واحدة',
+            contentTitle: '🧪 اختبار إشعار مجدول',
+            summaryText: 'نَجَاتَك',
+          ),
         );
 
     const NotificationDetails notificationDetails = NotificationDetails(
@@ -2378,13 +2757,770 @@ class NotificationService {
 
     await _notifications.zonedSchedule(
       998,
-      'اختبار إشعار مجدول',
-      'سيظهر هذا الإشعار بعد دقيقة واحدة',
+      '🧪 اختبار إشعار مجدول',
+      '⏰ سيظهر هذا الإشعار بعد دقيقة واحدة',
       scheduledTime,
       notificationDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
 
     debugPrint('✅ تم جدولة إشعار تجريبي بعد دقيقة واحدة');
+  }
+}
+
+// نوع الإشعار (Enum)
+enum NotificationType { morning, evening, sleep }
+import 'package:flutter/material.dart';
+
+import '../../models/azkar_model.dart';
+import 'azkar_item_widget.dart'; // استيراد ويدجت العنصر
+
+typedef AzkarItemTapCallback =
+    void Function(Azkar azkar, Color color, Gradient gradient);
+
+class AzkarCategoryWidget extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final Gradient gradient;
+  final List<Azkar> azkarList;
+  final bool? notificationEnabled;
+  final Function(bool)? onNotificationToggle;
+  final TimeOfDay? currentTime;
+  final VoidCallback? onChangeTime;
+  final AzkarItemTapCallback onAzkarItemTap; // دالة تمرير لفتح تفاصيل الذكر
+
+  const AzkarCategoryWidget({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.gradient,
+    required this.azkarList,
+    this.notificationEnabled,
+    this.onNotificationToggle,
+    this.currentTime,
+    this.onChangeTime,
+    required this.onAzkarItemTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Hero(
+      tag: title,
+      child: Card(
+        elevation: 8,
+        shadowColor: color.withAlpha(77),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+              colors: [Colors.white, color.withAlpha(13)],
+            ),
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
+              childrenPadding: const EdgeInsets.only(bottom: 16),
+              leading: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: gradient,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withAlpha(77),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, color: Colors.white, size: 28),
+              ),
+              title: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 13, color: Colors.black),
+                ),
+              ),
+              trailing: onNotificationToggle != null
+                  ? Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: notificationEnabled!
+                            ? Colors.green.withAlpha(25)
+                            : Colors.grey.withAlpha(25),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            notificationEnabled!
+                                ? Icons.notifications_active
+                                : Icons.notifications_off,
+                            color: notificationEnabled!
+                                ? Colors.green
+                                : Colors.grey,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.expand_more, size: 20),
+                        ],
+                      ),
+                    )
+                  : null,
+              children: [
+                if (onNotificationToggle != null)
+                  _buildNotificationSettings(context),
+
+                const SizedBox(height: 8),
+
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color.withAlpha(25),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.format_list_numbered,
+                              color: color,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${azkarList.length} ذكر',
+                              style: TextStyle(
+                                color: color,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...azkarList.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final azkar = entry.value;
+                  return AzkarItemWidget(
+                    azkar: azkar,
+                    color: color,
+                    gradient: gradient,
+                    index: index,
+                    onTap: () => onAzkarItemTap(azkar, color, gradient),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationSettings(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withAlpha(13),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: color.withAlpha(51)),
+      ),
+      child: Column(
+        children: [
+          SwitchListTile(
+            title: Text(
+              'تفعيل التنبيه اليومي',
+              style: TextStyle(fontWeight: FontWeight.bold, color: color),
+            ),
+            subtitle: Text(
+              notificationEnabled!
+                  ? 'سيصلك التنبيه يومياً الساعة ${currentTime!.format(context)}'
+                  : 'قم بتفعيل التنبيه لاختيار الوقت',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+            value: notificationEnabled!,
+            onChanged: onNotificationToggle,
+            activeThumbColor: color,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+          ),
+          if (notificationEnabled! && onChangeTime != null)
+            InkWell(
+              onTap: onChangeTime,
+              borderRadius: BorderRadius.circular(15),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: color.withAlpha(25),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.access_time, color: color, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'تغيير وقت التنبيه',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: color,
+                            ),
+                          ),
+                          Text(
+                            'الوقت الحالي: ${currentTime!.format(context)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.edit, color: color, size: 20),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+import 'package:najatak/widgets/azkar_handle_widget.dart';
+import 'package:najatak/widgets/azkar_tap_button.dart';
+
+import '../models/azkar_model.dart';
+
+class AzkarDetailsSheet extends StatefulWidget {
+  final Azkar azkar;
+  final Color color;
+  final Gradient gradient;
+
+  const AzkarDetailsSheet({
+    super.key,
+    required this.azkar,
+    required this.color,
+    required this.gradient,
+  });
+
+  @override
+  State<AzkarDetailsSheet> createState() => _AzkarDetailsSheetState();
+}
+
+class _AzkarDetailsSheetState extends State<AzkarDetailsSheet>
+    with SingleTickerProviderStateMixin {
+  int currentCount = 0;
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _incrementCount() {
+    if (currentCount < widget.azkar.countInt) {
+      _controller.forward().then((_) => _controller.reverse());
+      setState(() {
+        currentCount++;
+      });
+
+      if (currentCount == widget.azkar.countInt) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            _showCompletionDialog();
+          }
+        });
+      }
+    }
+  }
+
+  void _showCompletionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: widget.gradient,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(77),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Colors.white,
+                  size: 60,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'بارك الله فيك!',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'أكملت الذكر بنجاح ✨',
+                style: TextStyle(fontSize: 16, color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    currentCount = 0;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: widget.color,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: const Text(
+                  'إعادة',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------
+  // بناء الويدجت الداخلية (تم دمج بعضها نظراً لصغرها)
+  // ------------------------------------------------------------
+
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'تفاصيل الذكر',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: widget.color,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 28),
+            color: widget.color,
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAzkarText() {
+    return Text(
+      widget.azkar.zekr,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF303030),
+      ),
+    );
+  }
+
+  Widget _buildReferenceContainer() {
+    if (widget.azkar.reference == null && widget.azkar.description == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: widget.color.withAlpha(13),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: widget.color.withAlpha(25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.azkar.reference != null)
+            Text(
+              'المصدر: ${widget.azkar.reference!}',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: widget.color,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          if (widget.azkar.reference != null &&
+              widget.azkar.description != null)
+            const Divider(height: 16, color: Colors.grey, thickness: 0.5),
+          if (widget.azkar.description != null)
+            Text(
+              widget.azkar.description!,
+              textAlign: TextAlign.right,
+              style: TextStyle(color: Colors.black, fontSize: 14),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressIndicator() {
+    if (widget.azkar.countInt <= 1) return const SizedBox.shrink();
+
+    final progress = currentCount / widget.azkar.countInt;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: LinearProgressIndicator(
+          value: progress,
+          minHeight: 10,
+          backgroundColor: widget.color.withAlpha(25),
+          valueColor: AlwaysStoppedAnimation<Color>(widget.color),
+        ),
+      ),
+    );
+  }
+
+  // دالة Build الرئيسية (استدعاء الدوال المنقحة)
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.88,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const AzkarHandleWidget(),
+          _buildHeader(context),
+          Spacer(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildAzkarText(),
+                const SizedBox(height: 24),
+                _buildReferenceContainer(),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+
+          _buildProgressIndicator(),
+          AzkarTapButton(
+            currentCount: currentCount,
+            totalCount: widget.azkar.countInt,
+            color: widget.color,
+            gradient: widget.gradient,
+            scaleAnimation: _scaleAnimation,
+            onTap: _incrementCount,
+            onCompleted: _showCompletionDialog,
+          ),
+          Spacer(),
+        ],
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+class AzkarHandleWidget extends StatelessWidget {
+  const AzkarHandleWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      width: 50,
+      height: 5,
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(2.5),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+import '../../models/azkar_model.dart';
+
+class AzkarItemWidget extends StatelessWidget {
+  final Azkar azkar;
+  final Color color;
+  final Gradient gradient;
+  final int index;
+  final VoidCallback onTap;
+
+  const AzkarItemWidget({
+    super.key,
+    required this.azkar,
+    required this.color,
+    required this.gradient,
+    required this.index,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: color.withAlpha(51)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withAlpha(25),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  gradient: gradient,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      azkar.zekr,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 1.8,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (azkar.reference != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        azkar.reference!,
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                children: [
+                  if (azkar.countInt > 1)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: gradient,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withAlpha(77),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        '${azkar.countInt}×',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+                  Icon(Icons.arrow_forward_ios, color: color, size: 16),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+
+class AzkarTapButton extends StatelessWidget {
+  final int currentCount;
+  final int totalCount;
+  final Color color;
+  final Gradient gradient;
+  final Animation<double> scaleAnimation;
+  final VoidCallback onTap;
+  final VoidCallback onCompleted;
+
+  const AzkarTapButton({
+    super.key,
+    required this.currentCount,
+    required this.totalCount,
+    required this.color,
+    required this.gradient,
+    required this.scaleAnimation,
+    required this.onTap,
+    required this.onCompleted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isCompleted = currentCount >= totalCount;
+    final Color buttonColor = isCompleted ? Colors.green : color;
+
+    return GestureDetector(
+      onTap: isCompleted
+          ? () {
+              Navigator.pop(context); // إغلاق الـ Bottom Sheet
+              onCompleted(); // استدعاء دالة عرض نافذة الإكمال
+            }
+          : onTap,
+      child: ScaleTransition(
+        scale: scaleAnimation,
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: isCompleted
+                ? const LinearGradient(
+                    colors: [Colors.green, Color(0xFF1B5E20)],
+                  )
+                : gradient,
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: [
+              BoxShadow(
+                color: buttonColor.withAlpha(102),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                isCompleted ? 'تم الإكمال! انقر للإنهاء' : 'انقر للتسبيح',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$currentCount / $totalCount',
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

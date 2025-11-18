@@ -16,7 +16,7 @@ class NotificationService {
 
     // إعدادات Android مع تصميم احترافي
     const AndroidInitializationSettings androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/launcher_icon');
 
     const DarwinInitializationSettings iosSettings =
         DarwinInitializationSettings(
@@ -68,7 +68,7 @@ class NotificationService {
           description: 'إشعارات أذكار الصباح',
           importance: Importance.max,
           playSound: true,
-          enableVibration: true,
+          enableVibration: false,
           enableLights: true,
           ledColor: Color(0xFFFFA726), // لون برتقالي
           vibrationPattern: Int64List.fromList([
@@ -91,7 +91,7 @@ class NotificationService {
           description: 'إشعارات أذكار المساء',
           importance: Importance.max,
           playSound: true,
-          enableVibration: true,
+          enableVibration: false,
           enableLights: true,
           ledColor: Color(0xFF5C6BC0), // لون أزرق
           vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
@@ -107,7 +107,7 @@ class NotificationService {
           description: 'إشعارات أذكار النوم',
           importance: Importance.max,
           playSound: true,
-          enableVibration: true,
+          enableVibration: false,
           enableLights: true,
           ledColor: Color(0xFF9C27B0), // لون بنفسجي
           vibrationPattern: Int64List.fromList([0, 500, 200, 500]),
@@ -139,8 +139,10 @@ class NotificationService {
           enableVibration: true,
           enableLights: true,
           color: color ?? const Color(0xFF1B5E20),
-          icon: '@mipmap/ic_launcher',
-          largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+          icon: '@mipmap/launcher_icon',
+          largeIcon: const DrawableResourceAndroidBitmap(
+            '@mipmap/launcher_icon',
+          ),
           ongoing: false,
           autoCancel: true,
           fullScreenIntent: true,
@@ -158,7 +160,7 @@ class NotificationService {
             const AndroidNotificationAction(
               'open_app',
               'فتح التطبيق',
-              icon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+              icon: DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
               showsUserInterface: true,
             ),
             const AndroidNotificationAction(
@@ -235,41 +237,18 @@ class NotificationService {
             importance: Importance.max,
             priority: Priority.high,
             playSound: true,
-            enableVibration: true,
+            enableVibration: false,
             enableLights: true,
             color: color,
-            icon: '@mipmap/ic_launcher',
+            icon: '@mipmap/launcher_icon',
             largeIcon: const DrawableResourceAndroidBitmap(
-              '@mipmap/ic_launcher',
+              '@mipmap/launcher_icon',
             ),
             ongoing: false,
             autoCancel: true,
-            fullScreenIntent: true,
+            fullScreenIntent: false,
             channelShowBadge: true,
             showWhen: true,
-            // تصميم Big Text مع الرموز التعبيرية
-            styleInformation: BigTextStyleInformation(
-              '$emoji $body',
-              htmlFormatBigText: true,
-              contentTitle: '$emoji $title',
-              htmlFormatContentTitle: true,
-              summaryText: 'نَجَاتَك - تطبيق الأذكار',
-              htmlFormatSummaryText: true,
-            ),
-            // أزرار الإجراءات
-            actions: <AndroidNotificationAction>[
-              const AndroidNotificationAction(
-                'open_azkar',
-                'عرض الأذكار',
-                icon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
-                showsUserInterface: true,
-              ),
-              const AndroidNotificationAction(
-                'dismiss',
-                'حسناً',
-                cancelNotification: true,
-              ),
-            ],
           );
 
       const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -295,8 +274,8 @@ class NotificationService {
 
       await _notifications.zonedSchedule(
         id,
-        '$emoji $title',
-        '$emoji $body',
+        '$title$emoji',
+        '$body$emoji',
         scheduledDate,
         notificationDetails,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -379,8 +358,8 @@ class NotificationService {
           playSound: true,
           enableVibration: true,
           color: Color(0xFFFFA726),
-          icon: '@mipmap/ic_launcher',
-          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+          icon: '@mipmap/launcher_icon',
+          largeIcon: DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
           styleInformation: BigTextStyleInformation(
             '⏰ سيظهر هذا الإشعار بعد دقيقة واحدة',
             contentTitle: '🧪 اختبار إشعار مجدول',
