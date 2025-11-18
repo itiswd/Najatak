@@ -209,28 +209,31 @@ class NotificationService {
 
       String channelId;
       Color color;
-      String emoji;
+      String soundName;
 
       switch (type) {
         case NotificationType.morning:
           channelId = 'morning_azkar_channel';
           color = const Color(0xFFFFA726);
-          emoji = '🌅';
+          soundName = 'morning_sound';
+          body = 'حان وقت أذكار الصباح 🌅';
           break;
         case NotificationType.evening:
           channelId = 'evening_azkar_channel';
           color = const Color(0xFF5C6BC0);
-          emoji = '🌙';
+          soundName = 'evening_sound';
+          body = 'حان وقت أذكار المساء 🌙';
           break;
         case NotificationType.sleep:
           channelId = 'sleep_azkar_channel';
           color = const Color(0xFF9C27B0);
-          emoji = '🌟';
+          soundName = 'sleep_sound';
+          body = 'لا تنسى أذكار النوم 🌟';
           break;
         case NotificationType.periodic:
           channelId = 'periodic_azkar_channel';
           color = const Color(0xFF1B5E20);
-          emoji = '📿';
+          soundName = 'default_sound';
           break;
       }
 
@@ -242,6 +245,7 @@ class NotificationService {
             importance: Importance.max,
             priority: Priority.high,
             playSound: true,
+            sound: RawResourceAndroidNotificationSound(soundName),
             enableVibration: false, // إلغاء الاهتزاز
             enableLights: true,
             color: color,
@@ -254,6 +258,13 @@ class NotificationService {
             fullScreenIntent: false,
             channelShowBadge: true,
             showWhen: true,
+            styleInformation: BigTextStyleInformation(
+              body,
+              htmlFormatBigText: true,
+              contentTitle: 'نَجَاتَك',
+              htmlFormatContentTitle: true,
+              summaryText: _getChannelName(type),
+            ),
           );
 
       const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -273,14 +284,14 @@ class NotificationService {
       debugPrint('📅 جدولة إشعار جديد:');
       debugPrint('   النوع: ${_getChannelName(type)}');
       debugPrint('   ID: $id');
-      debugPrint('   العنوان: $title');
+      debugPrint('   العنوان: نَجَاتَك');
       debugPrint('   الوقت: $hour:${minute.toString().padLeft(2, '0')}');
       debugPrint('═══════════════════════════════════════');
 
       await _notifications.zonedSchedule(
         id,
-        '$title $emoji',
-        '$body $emoji',
+        'نَجَاتَك',
+        body,
         scheduledDate,
         notificationDetails,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -299,6 +310,7 @@ class NotificationService {
     required int id,
     required String title,
     required String body,
+    required String soundFileName, // اسم ملف الصوت (بدون امتداد)
     required int delayMinutes, // التأخير قبل أول ظهور
     required int intervalMinutes, // الفاصل بين التكرار
     String? payload,
@@ -306,28 +318,32 @@ class NotificationService {
     try {
       await _notifications.cancel(id);
 
-      AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-        'periodic_azkar_channel',
-        'الأذكار الدورية',
-        channelDescription: 'إشعارات الأذكار الدورية المخصصة',
-        importance: Importance.high,
-        priority: Priority.high,
-        playSound: true,
-        enableVibration: false,
-        enableLights: true,
-        color: Color(0xFF1B5E20),
-        icon: '@mipmap/launcher_icon',
-        largeIcon: DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
-        ongoing: false,
-        autoCancel: true,
-        styleInformation: BigTextStyleInformation(
-          body,
-          htmlFormatBigText: true,
-          contentTitle: title,
-          htmlFormatContentTitle: true,
-          summaryText: 'نَجَاتَك',
-        ),
-      );
+      final AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+            'periodic_azkar_channel',
+            'الأذكار الدورية',
+            channelDescription: 'إشعارات الأذكار الدورية المخصصة',
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: true,
+            sound: RawResourceAndroidNotificationSound(
+              soundFileName,
+            ), // صوت مخصص
+            enableVibration: false,
+            enableLights: true,
+            color: Color(0xFF1B5E20),
+            icon: '@mipmap/launcher_icon',
+            largeIcon: DrawableResourceAndroidBitmap('@mipmap/launcher_icon'),
+            ongoing: false,
+            autoCancel: true,
+            styleInformation: BigTextStyleInformation(
+              body,
+              htmlFormatBigText: true,
+              contentTitle: title,
+              htmlFormatContentTitle: true,
+              summaryText: 'أذكار دورية',
+            ),
+          );
 
       NotificationDetails notificationDetails = NotificationDetails(
         android: androidDetails,
@@ -340,8 +356,8 @@ class NotificationService {
       // جدولة الإشعار مع التكرار
       await _notifications.zonedSchedule(
         id,
-        '$title 📿',
-        '$body 📿',
+        title,
+        body,
         scheduledDate,
         notificationDetails,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -353,6 +369,8 @@ class NotificationService {
       debugPrint('📅 جدولة إشعار متسلسل:');
       debugPrint('   ID: $id');
       debugPrint('   العنوان: $title');
+      debugPrint('   الذكر: $body');
+      debugPrint('   الصوت: $soundFileName');
       debugPrint('   التأخير: $delayMinutes دقيقة');
       debugPrint('   التكرار: كل $intervalMinutes دقيقة');
       debugPrint(
