@@ -19,7 +19,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
 
     {
       'text':
-          'لَا إلَهَ إلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ المُلْكُ وَلَهُ الحَمْدُ وَهُوَ عَلَى كُلِ شَئٍ قَدِرُ',
+          'لَا إلَهَ إلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ المُلْكُ وَلَهُ الحَمْدُ وَهُوَ عَلَى كُلِ شَئٍ قَدِيْرُ',
       'id': 'zekr2',
       'sound': 'zekr_2',
     },
@@ -231,7 +231,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
   }
 
   Future<void> _showIntervalPicker() async {
-    final intervals = [1, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180];
+    final intervals = [2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180];
 
     await showDialog(
       context: context,

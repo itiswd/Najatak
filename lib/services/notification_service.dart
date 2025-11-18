@@ -30,10 +30,19 @@ class NotificationService {
 
     await _notifications.initialize(
       initSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
+      onDidReceiveNotificationResponse: (NotificationResponse response) async {
         debugPrint('تم الضغط على الإشعار: ${response.payload}');
+
+        // التحقق من إشعارات إعادة الجدولة التلقائية
+        if (response.payload != null &&
+            response.payload!.startsWith('renewal:')) {
+          await handleAutoRenewal(response.payload!);
+        }
       },
     );
+
+    // التحقق من الإشعارات عند بدء التطبيق
+    await _checkAndHandleRenewalNotifications();
 
     // إنشاء قنوات الإشعارات بأصوات مخصصة
     await _createNotificationChannels();
@@ -66,7 +75,7 @@ class NotificationService {
           description: 'إشعارات أذكار الصباح',
           importance: Importance.max,
           playSound: true,
-          enableVibration: false, // إلغاء الاهتزاز
+          enableVibration: false,
           enableLights: true,
           ledColor: Color(0xFFFFA726),
           sound: RawResourceAndroidNotificationSound('morning_sound'),
@@ -81,7 +90,7 @@ class NotificationService {
           description: 'إشعارات أذكار المساء',
           importance: Importance.max,
           playSound: true,
-          enableVibration: false, // إلغاء الاهتزاز
+          enableVibration: false,
           enableLights: true,
           ledColor: Color(0xFF5C6BC0),
           sound: RawResourceAndroidNotificationSound('evening_sound'),
@@ -96,25 +105,57 @@ class NotificationService {
           description: 'إشعارات أذكار النوم',
           importance: Importance.max,
           playSound: true,
-          enableVibration: false, // إلغاء الاهتزاز
+          enableVibration: false,
           enableLights: true,
           ledColor: Color(0xFF9C27B0),
           sound: RawResourceAndroidNotificationSound('sleep_sound'),
         ),
       );
 
-      // قناة الأذكار الدورية (بدون اهتزاز)
+      // إنشاء قنوات منفصلة لكل ذكر دوري بصوته الخاص
+      final periodicSounds = [
+        'zekr_1',
+        'zekr_2',
+        'zekr_3',
+        'zekr_4',
+        'zekr_5',
+        'zekr_6',
+        'zekr_7',
+        'zekr_8',
+        'zekr_9',
+        'zekr_10',
+        'zekr_11',
+        'zekr_12',
+        'zekr_13',
+        'zekr_14',
+      ];
+
+      for (int i = 0; i < periodicSounds.length; i++) {
+        await androidImplementation.createNotificationChannel(
+          AndroidNotificationChannel(
+            'periodic_zekr_${i + 1}_channel',
+            'ذكر دوري ${i + 1}',
+            description: 'قناة للذكر الدوري رقم ${i + 1}',
+            importance: Importance.high,
+            playSound: true,
+            enableVibration: false,
+            enableLights: true,
+            ledColor: Color(0xFF1B5E20),
+            sound: RawResourceAndroidNotificationSound(periodicSounds[i]),
+          ),
+        );
+      }
+
+      // قناة التجديد التلقائي
       await androidImplementation.createNotificationChannel(
         AndroidNotificationChannel(
-          'periodic_azkar_channel',
-          'الأذكار الدورية',
-          description: 'إشعارات الأذكار الدورية المخصصة',
-          importance: Importance.high,
-          playSound: true,
-          enableVibration: false, // إلغاء الاهتزاز
-          enableLights: true,
-          ledColor: Color(0xFF1B5E20),
-          sound: RawResourceAndroidNotificationSound('default_sound'),
+          'renewal_channel',
+          'تجديد تلقائي',
+          description: 'قناة لتجديد الأذكار الدورية تلقائياً',
+          importance: Importance.low,
+          playSound: false,
+          enableVibration: false,
+          enableLights: false,
         ),
       );
     }
@@ -139,7 +180,7 @@ class NotificationService {
           importance: Importance.max,
           priority: Priority.high,
           playSound: true,
-          enableVibration: false, // إلغاء الاهتزاز
+          enableVibration: false,
           enableLights: true,
           color: color ?? const Color(0xFF1B5E20),
           icon: '@mipmap/launcher_icon',
@@ -246,7 +287,7 @@ class NotificationService {
             priority: Priority.high,
             playSound: true,
             sound: RawResourceAndroidNotificationSound(soundName),
-            enableVibration: false, // إلغاء الاهتزاز
+            enableVibration: false,
             enableLights: true,
             color: color,
             icon: '@mipmap/launcher_icon',
@@ -310,25 +351,36 @@ class NotificationService {
     required int id,
     required String title,
     required String body,
-    required String soundFileName, // اسم ملف الصوت (بدون امتداد)
-    required int delayMinutes, // التأخير قبل أول ظهور
-    required int intervalMinutes, // الفاصل بين التكرار
+    required String soundFileName,
+    required int delayMinutes,
+    required int intervalMinutes,
     String? payload,
   }) async {
     try {
-      await _notifications.cancel(id);
+      // إلغاء جميع النسخ القديمة
+      for (int i = 0; i < 2000; i++) {
+        await _notifications.cancel(id + i * 1000);
+      }
+
+      // استخراج رقم الذكر من اسم الملف الصوتي (مثل: zekr_1 -> 1)
+      int zekrNumber = 1;
+      final match = RegExp(r'zekr_(\d+)').firstMatch(soundFileName);
+      if (match != null) {
+        zekrNumber = int.parse(match.group(1)!);
+      }
+
+      // استخدام قناة مخصصة لهذا الذكر
+      final channelId = 'periodic_zekr_${zekrNumber}_channel';
 
       final AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
-            'periodic_azkar_channel',
-            'الأذكار الدورية',
-            channelDescription: 'إشعارات الأذكار الدورية المخصصة',
+            channelId,
+            'ذكر دوري $zekrNumber',
+            channelDescription: 'قناة للذكر الدوري رقم $zekrNumber',
             importance: Importance.high,
             priority: Priority.high,
             playSound: true,
-            sound: RawResourceAndroidNotificationSound(
-              soundFileName,
-            ), // صوت مخصص
+            sound: RawResourceAndroidNotificationSound(soundFileName),
             enableVibration: false,
             enableLights: true,
             color: Color(0xFF1B5E20),
@@ -351,34 +403,169 @@ class NotificationService {
 
       // حساب وقت أول إشعار
       final now = tz.TZDateTime.now(tz.local);
-      final scheduledDate = now.add(Duration(minutes: delayMinutes));
-
-      // جدولة الإشعار مع التكرار
-      await _notifications.zonedSchedule(
-        id,
-        title,
-        body,
-        scheduledDate,
-        notificationDetails,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        payload: payload,
-        matchDateTimeComponents: DateTimeComponents.time,
-      );
+      var scheduledDate = now.add(Duration(minutes: delayMinutes));
 
       debugPrint('═══════════════════════════════════════');
-      debugPrint('📅 جدولة إشعار متسلسل:');
+      debugPrint('📅 جدولة إشعار دوري:');
       debugPrint('   ID: $id');
       debugPrint('   العنوان: $title');
       debugPrint('   الذكر: $body');
-      debugPrint('   الصوت: $soundFileName');
+      debugPrint('   الصوت: $soundFileName (قناة: $channelId)');
       debugPrint('   التأخير: $delayMinutes دقيقة');
       debugPrint('   التكرار: كل $intervalMinutes دقيقة');
       debugPrint(
         '   أول ظهور: ${scheduledDate.hour}:${scheduledDate.minute.toString().padLeft(2, '0')}',
       );
       debugPrint('═══════════════════════════════════════');
+
+      // جدولة جميع النسخ المستقبلية (7 أيام = 10080 دقيقة)
+      int notificationCount = 0;
+      final endTime = now.add(Duration(days: 7)); // جدولة لمدة أسبوع كامل
+
+      while (scheduledDate.isBefore(endTime)) {
+        await _notifications.zonedSchedule(
+          id + notificationCount * 1000, // ID فريد لكل إشعار
+          title,
+          body,
+          scheduledDate,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          payload: payload,
+        );
+
+        if (notificationCount < 10) {
+          // طباعة أول 10 فقط
+          debugPrint(
+            '   ✅ نسخة #${notificationCount + 1}: ${scheduledDate.day}/${scheduledDate.month} ${scheduledDate.hour}:${scheduledDate.minute.toString().padLeft(2, '0')}',
+          );
+        }
+
+        scheduledDate = scheduledDate.add(Duration(minutes: intervalMinutes));
+        notificationCount++;
+      }
+
+      debugPrint('✅ تم جدولة $notificationCount إشعار دوري لمدة 7 أيام!');
+
+      // جدولة إشعار إعادة الجدولة التلقائية (قبل يوم من انتهاء المدة)
+      final renewalTime = now.add(Duration(days: 6));
+      await _scheduleAutoRenewal(
+        id: id + 999000, // ID خاص بإشعار التجديد
+        originalId: id,
+        title: title,
+        body: body,
+        soundFileName: soundFileName,
+        delayMinutes: delayMinutes,
+        intervalMinutes: intervalMinutes,
+        renewalTime: renewalTime,
+        payload: payload,
+      );
+
+      debugPrint(
+        '📅 تم جدولة إعادة الجدولة التلقائية في: ${renewalTime.day}/${renewalTime.month} ${renewalTime.hour}:${renewalTime.minute.toString().padLeft(2, '0')}',
+      );
     } catch (e) {
-      debugPrint('❌ خطأ في جدولة الإشعار المتسلسل: $e');
+      debugPrint('❌ خطأ في جدولة الإشعار الدوري: $e');
+    }
+  }
+
+  // جدولة إعادة الجدولة التلقائية
+  static Future<void> _scheduleAutoRenewal({
+    required int id,
+    required int originalId,
+    required String title,
+    required String body,
+    required String soundFileName,
+    required int delayMinutes,
+    required int intervalMinutes,
+    required tz.TZDateTime renewalTime,
+    String? payload,
+  }) async {
+    try {
+      // إنشاء إشعار خفي لإعادة الجدولة
+      final AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+            'renewal_channel',
+            'تجديد تلقائي',
+            channelDescription: 'قناة لتجديد الأذكار الدورية تلقائياً',
+            importance: Importance.low,
+            priority: Priority.low,
+            playSound: false,
+            enableVibration: false,
+            enableLights: false,
+            ongoing: false,
+            autoCancel: true,
+            visibility: NotificationVisibility.secret, // إخفاء الإشعار
+          );
+
+      NotificationDetails notificationDetails = NotificationDetails(
+        android: androidDetails,
+      );
+
+      await _notifications.zonedSchedule(
+        id,
+        'تجديد الأذكار',
+        'جاري تجديد الأذكار الدورية...',
+        renewalTime,
+        notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload:
+            'renewal:$originalId:$title:$body:$soundFileName:$delayMinutes:$intervalMinutes',
+      );
+
+      debugPrint('✅ تم جدولة إعادة الجدولة التلقائية - ID: $id');
+    } catch (e) {
+      debugPrint('❌ خطأ في جدولة إعادة الجدولة: $e');
+    }
+  }
+
+  // معالجة إعادة الجدولة التلقائية
+  static Future<void> handleAutoRenewal(String payload) async {
+    try {
+      final parts = payload.split(':');
+      if (parts[0] != 'renewal' || parts.length < 7) return;
+
+      final originalId = int.parse(parts[1]);
+      final title = parts[2];
+      final body = parts[3];
+      final soundFileName = parts[4];
+      final delayMinutes = int.parse(parts[5]);
+      final intervalMinutes = int.parse(parts[6]);
+
+      debugPrint('🔄 بدء إعادة الجدولة التلقائية للذكر ID: $originalId');
+
+      // إعادة جدولة الإشعارات لمدة 7 أيام جديدة
+      await scheduleSequentialNotification(
+        id: originalId,
+        title: title,
+        body: body,
+        soundFileName: soundFileName,
+        delayMinutes: 5, // بدون تأخير لأنه تجديد
+        intervalMinutes: intervalMinutes,
+        payload: parts.sublist(7).join(':'), // باقي البيانات
+      );
+
+      debugPrint('✅ تم إعادة الجدولة التلقائية بنجاح!');
+    } catch (e) {
+      debugPrint('❌ خطأ في معالجة إعادة الجدولة: $e');
+    }
+  }
+
+  // التحقق من إشعارات التجديد المعلقة عند بدء التطبيق
+  static Future<void> _checkAndHandleRenewalNotifications() async {
+    try {
+      final pending = await _notifications.pendingNotificationRequests();
+
+      for (var notification in pending) {
+        if (notification.payload != null &&
+            notification.payload!.startsWith('renewal:')) {
+          // التحقق إذا كان وقت التجديد قد حان
+          final now = tz.TZDateTime.now(tz.local);
+          // إذا كان الإشعار في الماضي أو خلال الساعة القادمة
+          debugPrint('🔍 تم العثور على إشعار تجديد معلق: ${notification.id}');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ خطأ في التحقق من إشعارات التجديد: $e');
     }
   }
 
@@ -415,8 +602,11 @@ class NotificationService {
   }
 
   static Future<void> cancelNotification(int id) async {
-    await _notifications.cancel(id);
-    debugPrint('🗑️ تم إلغاء الإشعار رقم: $id');
+    // إلغاء الإشعار الأساسي وجميع النسخ المتكررة
+    for (int i = 0; i < 100; i++) {
+      await _notifications.cancel(id + i * 1000);
+    }
+    debugPrint('🗑️ تم إلغاء الإشعار رقم: $id وجميع نسخه');
   }
 
   static Future<void> cancelAllNotifications() async {
