@@ -106,8 +106,12 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
       isEnabled = prefs.getBool('periodic_azkar_enabled') ?? false;
       intervalMinutes = prefs.getInt('periodic_azkar_interval') ?? 30;
       final savedAzkar = prefs.getString('periodic_selected_azkar');
-      if (savedAzkar != null) {
-        selectedAzkar = List<String>.from(json.decode(savedAzkar));
+      if (savedAzkar != null && savedAzkar.isNotEmpty) {
+        try {
+          selectedAzkar = List<String>.from(json.decode(savedAzkar));
+        } catch (e) {
+          selectedAzkar = [];
+        }
       }
     });
   }
@@ -123,8 +127,6 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
   }
 
   void _toggleAzkar(String id) {
-    if (!mounted) return;
-
     setState(() {
       if (selectedAzkar.contains(id)) {
         selectedAzkar.remove(id);
@@ -133,23 +135,23 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
       }
     });
     _saveSettings();
+
+    if (selectedAzkar.isEmpty && isEnabled) {
+      _togglePeriodicNotifications(false);
+    }
   }
 
   Future<void> _togglePeriodicNotifications(bool value) async {
     if (value && selectedAzkar.isEmpty) {
-      if (mounted) {
-        _showSnackBar('يرجى اختيار ذكر واحد على الأقل', Colors.orange);
-      }
+      _showSnackBar('⚠️ اختر ذكر واحد على الأقل', Colors.orange);
       return;
     }
 
-    if (!mounted) return;
     setState(() => isLoading = true);
 
     try {
       if (value) {
-        // بناء قائمة الأذكار المختارة بالترتيب
-        final List<Map<String, String>> orderedAzkar = selectedAzkar
+        final orderedAzkar = selectedAzkar
             .map((id) => availableAzkar.firstWhere((e) => e['id'] == id))
             .toList();
 
@@ -158,49 +160,36 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
           intervalMinutes: intervalMinutes,
         );
 
-        if (!mounted) return;
         setState(() => isEnabled = true);
         await _saveSettings();
 
-        if (mounted) {
-          final total = intervalMinutes * selectedAzkar.length;
-          _showSnackBar(
-            'تم تفعيل ${selectedAzkar.length} ذكر\nالذكر كل $intervalMinutes دقيقة\nدورة كاملة: ${_formatTime(total)}',
-            Colors.green,
-          );
-        }
+        final total = intervalMinutes * selectedAzkar.length;
+        _showSnackBar(
+          '✅ تم التفعيل\n${selectedAzkar.length} ذكر كل $intervalMinutes دقيقة',
+          Colors.green,
+        );
       } else {
         await NotificationService.cancelAllPeriodicNotifications();
-
-        if (!mounted) return;
         setState(() => isEnabled = false);
         await _saveSettings();
-
-        if (mounted) {
-          _showSnackBar('تم إيقاف الأذكار الدورية', Colors.blue);
-        }
+        _showSnackBar('🛑 تم الإيقاف', Colors.blue);
       }
     } catch (e) {
-      if (mounted) {
-        _showSnackBar('حدث خطأ: $e', Colors.red);
-      }
+      _showSnackBar('❌ خطأ: $e', Colors.red);
+      setState(() => isEnabled = false);
     } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
+      setState(() => isLoading = false);
     }
   }
 
   Future<void> _showIntervalPicker() async {
-    if (!mounted) return;
-
-    final intervals = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180];
+    final intervals = [1, 5, 10, 15, 20, 30, 45, 60, 90, 120];
 
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('الفاصل الزمني بين كل ذكر'),
+        title: const Text('الفاصل الزمني'),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -213,17 +202,16 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                 trailing: intervalMinutes == minutes
                     ? const Icon(Icons.check_circle, color: Color(0xFF1B5E20))
                     : null,
-                onTap: () {
-                  if (!mounted) return;
-                  setState(() => intervalMinutes = minutes);
+                onTap: () async {
                   Navigator.pop(context);
-                  _saveSettings();
-                  if (isEnabled) {
-                    _togglePeriodicNotifications(false).then((_) {
-                      if (mounted) {
-                        _togglePeriodicNotifications(true);
-                      }
-                    });
+
+                  final old = intervalMinutes;
+                  setState(() => intervalMinutes = minutes);
+                  await _saveSettings();
+
+                  if (isEnabled && old != minutes) {
+                    await _togglePeriodicNotifications(false);
+                    await _togglePeriodicNotifications(true);
                   }
                 },
               );
@@ -236,7 +224,6 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
 
   void _showSnackBar(String message, Color color) {
     if (!mounted) return;
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -276,22 +263,43 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
           ),
         ),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildControlCard(),
-                const SizedBox(height: 16),
-                if (selectedAzkar.isNotEmpty) _buildInfoCard(),
-                if (selectedAzkar.isNotEmpty) const SizedBox(height: 16),
-                _buildIntervalCard(),
-                const SizedBox(height: 16),
-                _buildAzkarCounter(),
-                const SizedBox(height: 16),
-                ...availableAzkar.map(_buildAzkarItem),
-              ],
+      body: Stack(
+        children: [
+          ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _buildControlCard(),
+              const SizedBox(height: 16),
+              if (selectedAzkar.isNotEmpty) _buildInfoCard(),
+              if (selectedAzkar.isNotEmpty) const SizedBox(height: 16),
+              _buildIntervalCard(),
+              const SizedBox(height: 16),
+              _buildAzkarCounter(),
+              const SizedBox(height: 16),
+              ...availableAzkar.map(_buildAzkarItem),
+            ],
+          ),
+          if (isLoading)
+            Container(
+              color: Colors.black54,
+              child: const Center(
+                child: Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('جاري المعالجة...'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
+        ],
+      ),
     );
   }
 
@@ -335,7 +343,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isEnabled ? 'مفعّل' : 'غير مفعّل',
+                    isEnabled ? '✅ مفعّل' : '⭕ غير مفعّل',
                     style: const TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ],
@@ -343,7 +351,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
             ),
             Switch(
               value: isEnabled,
-              onChanged: _togglePeriodicNotifications,
+              onChanged: isLoading ? null : _togglePeriodicNotifications,
               activeThumbColor: Colors.white,
               activeTrackColor: Colors.white.withAlpha(128),
             ),
@@ -373,13 +381,9 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
               '${selectedAzkar.length} ذكر',
             ),
             const Divider(height: 16),
-            _buildInfoRow(
-              Icons.timer,
-              'الفاصل بين كل ذكر',
-              _formatTime(intervalMinutes),
-            ),
+            _buildInfoRow(Icons.timer, 'الفاصل', _formatTime(intervalMinutes)),
             const Divider(height: 16),
-            _buildInfoRow(Icons.loop, 'وقت الدورة الكاملة', _formatTime(total)),
+            _buildInfoRow(Icons.loop, 'دورة كاملة', _formatTime(total)),
           ],
         ),
       ),
@@ -409,7 +413,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: InkWell(
-        onTap: _showIntervalPicker,
+        onTap: isLoading ? null : _showIntervalPicker,
         borderRadius: BorderRadius.circular(15),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -468,7 +472,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
           const Icon(Icons.format_list_numbered, color: Color(0xFF1B5E20)),
           const SizedBox(width: 8),
           Text(
-            'تم اختيار ${selectedAzkar.length} من ${availableAzkar.length} ذكر',
+            'تم اختيار ${selectedAzkar.length} من ${availableAzkar.length}',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -482,7 +486,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
 
   Widget _buildAzkarItem(Map<String, String> zekr) {
     final isSelected = selectedAzkar.contains(zekr['id']);
-    final selectedIndex = selectedAzkar.indexOf(zekr['id']!);
+    final selectedIndex = isSelected ? selectedAzkar.indexOf(zekr['id']!) : -1;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -506,17 +510,20 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
           ),
         ),
         subtitle: isSelected
-            ? Text(
-                'ترتيب الظهور: ${selectedIndex + 1}',
-                style: const TextStyle(
-                  color: Color(0xFF1B5E20),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+            ? Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '📍 ترتيب: ${selectedIndex + 1}',
+                  style: const TextStyle(
+                    color: Color(0xFF1B5E20),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
               )
             : null,
         value: isSelected,
-        onChanged: (_) => _toggleAzkar(zekr['id']!),
+        onChanged: isLoading ? null : (_) => _toggleAzkar(zekr['id']!),
         activeColor: const Color(0xFF1B5E20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       ),

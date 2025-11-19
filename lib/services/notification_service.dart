@@ -8,35 +8,41 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   static Future<void> initialize() async {
-    tz.initializeTimeZones();
-    tz.setLocalLocation(tz.getLocation('Africa/Cairo'));
+    try {
+      tz.initializeTimeZones();
+      tz.setLocalLocation(tz.getLocation('Africa/Cairo'));
 
-    const AndroidInitializationSettings androidSettings =
-        AndroidInitializationSettings('@mipmap/launcher_icon');
+      const AndroidInitializationSettings androidSettings =
+          AndroidInitializationSettings('@mipmap/launcher_icon');
 
-    const DarwinInitializationSettings iosSettings =
-        DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
-        );
+      const DarwinInitializationSettings iosSettings =
+          DarwinInitializationSettings(
+            requestAlertPermission: true,
+            requestBadgePermission: true,
+            requestSoundPermission: true,
+          );
 
-    const InitializationSettings initSettings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
+      const InitializationSettings initSettings = InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      );
 
-    await _notifications.initialize(initSettings);
-    await _createNotificationChannels();
+      await _notifications.initialize(initSettings);
+      await _createNotificationChannels();
 
-    final androidImplementation = _notifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
+      final androidImplementation = _notifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
 
-    if (androidImplementation != null) {
-      await androidImplementation.requestNotificationsPermission();
-      await androidImplementation.requestExactAlarmsPermission();
+      if (androidImplementation != null) {
+        await androidImplementation.requestNotificationsPermission();
+        await androidImplementation.requestExactAlarmsPermission();
+      }
+
+      debugPrint('✅ تم تهيئة خدمة الإشعارات بنجاح');
+    } catch (e) {
+      debugPrint('❌ خطأ في تهيئة خدمة الإشعارات: $e');
     }
   }
 
@@ -56,7 +62,7 @@ class NotificationService {
           importance: Importance.max,
           playSound: true,
           enableVibration: false,
-          sound: RawResourceAndroidNotificationSound('morning_sound'),
+          sound: const RawResourceAndroidNotificationSound('morning_sound'),
         ),
       );
 
@@ -69,7 +75,7 @@ class NotificationService {
           importance: Importance.max,
           playSound: true,
           enableVibration: false,
-          sound: RawResourceAndroidNotificationSound('evening_sound'),
+          sound: const RawResourceAndroidNotificationSound('evening_sound'),
         ),
       );
 
@@ -82,7 +88,7 @@ class NotificationService {
           importance: Importance.max,
           playSound: true,
           enableVibration: false,
-          sound: RawResourceAndroidNotificationSound('sleep_sound'),
+          sound: const RawResourceAndroidNotificationSound('sleep_sound'),
         ),
       );
 
@@ -118,8 +124,6 @@ class NotificationService {
         );
       }
     }
-
-    debugPrint('✅ تم إنشاء قنوات الإشعارات بنجاح');
   }
 
   // جدولة إشعار يومي
@@ -188,31 +192,44 @@ class NotificationService {
         matchDateTimeComponents: DateTimeComponents.time,
       );
 
-      debugPrint('✅ تم جدولة إشعار يومي - ID: $id');
+      debugPrint('✅ جدولة إشعار يومي - ID: $id');
     } catch (e) {
-      debugPrint('❌ خطأ في جدولة الإشعار: $e');
+      debugPrint('❌ خطأ في جدولة الإشعار اليومي: $e');
+      rethrow;
     }
   }
 
-  // جدولة الأذكار الدورية
+  // 🚀 جدولة الأذكار الدورية - مع إصلاح مشكلة التاريخ
   static Future<void> schedulePeriodicAzkar({
     required List<Map<String, String>> azkarList,
     required int intervalMinutes,
   }) async {
     try {
-      // إلغاء جميع الإشعارات الدورية القديمة
-      await cancelAllPeriodicNotifications();
+      debugPrint('═══════════════════════════════════════');
+      debugPrint('🚀 بدء جدولة ${azkarList.length} ذكر دوري');
+      debugPrint('⏱️  الفاصل الزمني: $intervalMinutes دقيقة');
+
+      // ✅ إلغاء سريع فقط للإشعارات الموجودة
+      final pending = await _notifications.pendingNotificationRequests();
+      final periodicIds = pending
+          .where((n) => n.id >= 500 && n.id < 15000)
+          .map((n) => n.id)
+          .toList();
+
+      for (final id in periodicIds) {
+        await _notifications.cancel(id);
+      }
+      debugPrint('🗑️ تم إلغاء ${periodicIds.length} إشعار قديم');
 
       final now = tz.TZDateTime.now(tz.local);
+      int totalScheduled = 0;
 
-      // جدولة كل ذكر لمدة 30 يوم (لضمان استمرارية طويلة)
+      // ✅ جدولة 50 إشعار لكل ذكر (تكفي لأسبوعين تقريباً)
       for (int azkarIndex = 0; azkarIndex < azkarList.length; azkarIndex++) {
         final zekr = azkarList[azkarIndex];
-        // final zekrId = zekr['id']!;
         final zekrText = zekr['text']!;
         final soundFileName = zekr['sound']!;
 
-        // استخراج رقم الذكر من اسم الملف الصوتي
         int zekrNumber = azkarIndex + 1;
         final match = RegExp(r'zekr_(\d+)').firstMatch(soundFileName);
         if (match != null) {
@@ -221,59 +238,72 @@ class NotificationService {
 
         final channelId = 'periodic_zekr_${zekrNumber}_channel';
 
-        // أول ظهور لهذا الذكر بعد (intervalMinutes × ترتيبه)
-        final firstDelay = intervalMinutes * azkarIndex;
+        // 🔥 الإصلاح: أول ذكر يبدأ بعد دقيقة واحدة على الأقل
+        // ثم كل ذكر لاحق حسب ترتيبه
+        final firstDelayMinutes = 1 + (intervalMinutes * azkarIndex);
 
-        // جدولة 500 إشعار لكل ذكر (تكفي لشهر كامل تقريباً)
-        for (int i = 0; i < 500; i++) {
-          final notificationId = 500 + (azkarIndex * 1000) + i;
+        debugPrint(
+          '📌 جدولة ذكر ${azkarIndex + 1}: أول ظهور بعد $firstDelayMinutes دقيقة',
+        );
 
-          // حساب وقت هذا الإشعار
-          final totalMinutes =
-              firstDelay + (i * intervalMinutes * azkarList.length);
-          final scheduledTime = now.add(Duration(minutes: totalMinutes));
+        // جدولة 50 إشعار لكل ذكر
+        for (int i = 0; i < 50; i++) {
+          try {
+            final notificationId = 500 + (azkarIndex * 100) + i;
 
-          final AndroidNotificationDetails androidDetails =
-              AndroidNotificationDetails(
-                channelId,
-                'ذكر دوري $zekrNumber',
-                importance: Importance.high,
-                priority: Priority.high,
-                playSound: true,
-                sound: RawResourceAndroidNotificationSound(soundFileName),
-                enableVibration: false,
-                icon: '@mipmap/launcher_icon',
-              );
+            // حساب وقت هذا الإشعار
+            final totalMinutes =
+                firstDelayMinutes + (i * intervalMinutes * azkarList.length);
+            final scheduledTime = now.add(Duration(minutes: totalMinutes));
 
-          final NotificationDetails notificationDetails = NotificationDetails(
-            android: androidDetails,
-          );
+            // ✅ التحقق من أن التاريخ في المستقبل
+            if (scheduledTime.isBefore(now)) {
+              debugPrint('⚠️ تخطي إشعار في الماضي: $scheduledTime');
+              continue;
+            }
 
-          await _notifications.zonedSchedule(
-            notificationId,
-            'ذكر ${azkarIndex + 1} من ${azkarList.length}',
-            zekrText,
-            scheduledTime,
-            notificationDetails,
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          );
+            final AndroidNotificationDetails androidDetails =
+                AndroidNotificationDetails(
+                  channelId,
+                  'ذكر دوري $zekrNumber',
+                  importance: Importance.high,
+                  priority: Priority.high,
+                  playSound: true,
+                  sound: RawResourceAndroidNotificationSound(soundFileName),
+                  enableVibration: false,
+                  icon: '@mipmap/launcher_icon',
+                );
 
-          // طباعة أول 5 إشعارات لكل ذكر للمراجعة
-          if (i < 5) {
-            debugPrint(
-              '   ✅ ذكر ${azkarIndex + 1} - إشعار ${i + 1}: ${scheduledTime.day}/${scheduledTime.month} ${scheduledTime.hour}:${scheduledTime.minute.toString().padLeft(2, '0')}',
+            await _notifications.zonedSchedule(
+              notificationId,
+              'أذكار دورية',
+              zekrText,
+              scheduledTime,
+              NotificationDetails(android: androidDetails),
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             );
+
+            totalScheduled++;
+
+            // طباعة أول 3 إشعارات فقط
+            if (i < 3) {
+              debugPrint(
+                '   ✅ إشعار ${i + 1}: ${scheduledTime.day}/${scheduledTime.month} ${scheduledTime.hour}:${scheduledTime.minute.toString().padLeft(2, '0')}',
+              );
+            }
+          } catch (e) {
+            debugPrint('   ⚠️ خطأ في جدولة إشعار $i: $e');
           }
         }
       }
 
       debugPrint('═══════════════════════════════════════');
-      debugPrint('✅ تم جدولة ${azkarList.length} ذكر دوري بنجاح');
-      debugPrint('   الفاصل: $intervalMinutes دقيقة');
-      debugPrint('   إجمالي الإشعارات: ${azkarList.length * 500}');
+      debugPrint('✅ اكتمل! إجمالي الإشعارات: $totalScheduled');
+      debugPrint('📱 أول إشعار سيظهر بعد دقيقة واحدة');
       debugPrint('═══════════════════════════════════════');
     } catch (e) {
       debugPrint('❌ خطأ في جدولة الأذكار الدورية: $e');
+      rethrow;
     }
   }
 
@@ -308,28 +338,51 @@ class NotificationService {
   }
 
   static Future<void> cancelNotification(int id) async {
-    await _notifications.cancel(id);
-    debugPrint('🗑️ تم إلغاء الإشعار: $id');
+    try {
+      await _notifications.cancel(id);
+      debugPrint('🗑️ تم إلغاء الإشعار: $id');
+    } catch (e) {
+      debugPrint('❌ خطأ في إلغاء الإشعار: $e');
+    }
   }
 
+  // ✅ إلغاء سريع للإشعارات الدورية
   static Future<void> cancelAllPeriodicNotifications() async {
-    // إلغاء جميع الإشعارات الدورية (IDs من 500 إلى 14500)
-    for (int i = 0; i < 14000; i++) {
-      await _notifications.cancel(500 + i);
+    try {
+      final pending = await _notifications.pendingNotificationRequests();
+      final periodicIds = pending
+          .where((n) => n.id >= 500 && n.id < 15000)
+          .map((n) => n.id)
+          .toList();
+
+      for (final id in periodicIds) {
+        await _notifications.cancel(id);
+      }
+
+      debugPrint('🗑️ تم إلغاء ${periodicIds.length} إشعار دوري');
+    } catch (e) {
+      debugPrint('❌ خطأ في إلغاء الإشعارات الدورية: $e');
     }
-    debugPrint('🗑️ تم إلغاء جميع الإشعارات الدورية');
   }
 
   static Future<void> cancelAllNotifications() async {
-    await _notifications.cancelAll();
-    debugPrint('🗑️ تم إلغاء جميع الإشعارات');
+    try {
+      await _notifications.cancelAll();
+      debugPrint('🗑️ تم إلغاء جميع الإشعارات');
+    } catch (e) {
+      debugPrint('❌ خطأ في إلغاء جميع الإشعارات: $e');
+    }
   }
 
   static Future<List<PendingNotificationRequest>>
   getPendingNotifications() async {
-    final pending = await _notifications.pendingNotificationRequests();
-    debugPrint('📋 عدد الإشعارات المجدولة: ${pending.length}');
-    return pending;
+    try {
+      final pending = await _notifications.pendingNotificationRequests();
+      return pending;
+    } catch (e) {
+      debugPrint('❌ خطأ في جلب الإشعارات المجدولة: $e');
+      return [];
+    }
   }
 }
 
