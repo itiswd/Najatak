@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'screens/home_screen.dart';
 import 'services/notification_service.dart';
+import 'services/periodic_notification_worker.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -12,6 +13,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await NotificationService.initialize();
+  await PeriodicAzkarWorker.initialize();
 
   runApp(const Najatak());
 }

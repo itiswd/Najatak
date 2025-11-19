@@ -1,9 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:najatak/services/periodic_notification_worker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../services/notification_service.dart';
 
 class PeriodicAzkarScreen extends StatefulWidget {
   const PeriodicAzkarScreen({super.key});
@@ -143,42 +142,52 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
 
   Future<void> _togglePeriodicNotifications(bool value) async {
     if (value && selectedAzkar.isEmpty) {
-      _showSnackBar('⚠️ اختر ذكر واحد على الأقل', Colors.orange);
+      if (mounted) {
+        _showSnackBar('يرجى اختيار ذكر واحد على الأقل', Colors.orange);
+      }
       return;
     }
 
+    if (!mounted) return;
     setState(() => isLoading = true);
 
     try {
       if (value) {
-        final orderedAzkar = selectedAzkar
-            .map((id) => availableAzkar.firstWhere((e) => e['id'] == id))
-            .toList();
+        // ✅ استخدام WorkManager للعمل الدائم
+        await PeriodicAzkarWorker.startPeriodicWorker(intervalMinutes);
 
-        await NotificationService.schedulePeriodicAzkar(
-          azkarList: orderedAzkar,
-          intervalMinutes: intervalMinutes,
-        );
-
+        if (!mounted) return;
         setState(() => isEnabled = true);
         await _saveSettings();
 
-        final total = intervalMinutes * selectedAzkar.length;
-        _showSnackBar(
-          '✅ تم التفعيل\n${selectedAzkar.length} ذكر كل $intervalMinutes دقيقة',
-          Colors.green,
-        );
+        if (mounted) {
+          _showSnackBar(
+            '✅ تم تفعيل ${selectedAzkar.length} ذكر دوري\n'
+            '⏰ سيظهر كل $intervalMinutes دقيقة\n'
+            '🔄 سيعمل تلقائياً حتى عند إغلاق التطبيق',
+            Colors.green,
+          );
+        }
       } else {
-        await NotificationService.cancelAllPeriodicNotifications();
+        // ✅ إيقاف WorkManager
+        await PeriodicAzkarWorker.stopPeriodicWorker();
+
+        if (!mounted) return;
         setState(() => isEnabled = false);
         await _saveSettings();
-        _showSnackBar('🛑 تم الإيقاف', Colors.blue);
+
+        if (mounted) {
+          _showSnackBar('تم إيقاف الأذكار الدورية', Colors.blue);
+        }
       }
     } catch (e) {
-      _showSnackBar('❌ خطأ: $e', Colors.red);
-      setState(() => isEnabled = false);
+      if (mounted) {
+        _showSnackBar('حدث خطأ: $e', Colors.red);
+      }
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 

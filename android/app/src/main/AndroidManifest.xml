@@ -8,7 +8,6 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    
     <application
         android:label="نَجَاتَك"
         android:supportsRtl="true"
@@ -38,9 +37,9 @@
         
         <!-- Receiver لإعادة جدولة الإشعارات بعد إعادة تشغيل الجهاز -->
         <receiver 
-            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:name="androidx.work.impl.background.systemalarm.SystemAlarmService$AlarmIntentReceiver"
             android:enabled="true"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
