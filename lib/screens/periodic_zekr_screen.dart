@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:najatak/services/periodic_notification_worker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -90,6 +91,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
   int intervalMinutes = 30;
   bool isEnabled = false;
   bool isLoading = false;
+  int scheduledCount = 0; // عدد الإشعارات المجدولة
 
   @override
   void initState() {
@@ -113,6 +115,23 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
         }
       }
     });
+
+    _updateScheduledCount();
+  }
+
+  // تحديث عدد الإشعارات المجدولة
+  Future<void> _updateScheduledCount() async {
+    try {
+      final notifications = FlutterLocalNotificationsPlugin();
+      final pending = await notifications.pendingNotificationRequests();
+      final count = pending.where((n) => n.id >= 6000).length;
+
+      if (mounted) {
+        setState(() => scheduledCount = count);
+      }
+    } catch (e) {
+      debugPrint("خطأ في _updateScheduledCount: $e");
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -153,28 +172,29 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
 
     try {
       if (value) {
-        // ✅ استخدام WorkManager للعمل الدائم
         await PeriodicAzkarWorker.startPeriodicWorker(intervalMinutes);
 
         if (!mounted) return;
         setState(() => isEnabled = true);
         await _saveSettings();
+        await _updateScheduledCount();
 
         if (mounted) {
           _showSnackBar(
             '✅ تم تفعيل ${selectedAzkar.length} ذكر دوري\n'
-            '⏰ سيظهر كل $intervalMinutes دقيقة\n'
-            '🔄 سيعمل تلقائياً حتى عند إغلاق التطبيق',
+            '⏱️  سيظهر كل $intervalMinutes دقيقة بالضبط\n'
+            '🔄 يعمل تلقائياً حتى عند إغلاق التطبيق\n'
+            '📊 تم جدولة $scheduledCount إشعار',
             Colors.green,
           );
         }
       } else {
-        // ✅ إيقاف WorkManager
         await PeriodicAzkarWorker.stopPeriodicWorker();
 
         if (!mounted) return;
         setState(() => isEnabled = false);
         await _saveSettings();
+        await _updateScheduledCount();
 
         if (mounted) {
           _showSnackBar('تم إيقاف الأذكار الدورية', Colors.blue);
@@ -192,7 +212,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
   }
 
   Future<void> _showIntervalPicker() async {
-    final intervals = [1, 5, 10, 15, 20, 30, 45, 60, 90, 120];
+    final intervals = [1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120];
 
     await showDialog(
       context: context,
@@ -240,6 +260,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -261,6 +282,14 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
           icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          if (isEnabled)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _updateScheduledCount,
+              tooltip: 'تحديث',
+            ),
+        ],
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -279,6 +308,8 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
             children: [
               _buildControlCard(),
               const SizedBox(height: 16),
+              if (isEnabled) _buildStatusCard(),
+              if (isEnabled) const SizedBox(height: 16),
               if (selectedAzkar.isNotEmpty) _buildInfoCard(),
               if (selectedAzkar.isNotEmpty) const SizedBox(height: 16),
               _buildIntervalCard(),
@@ -300,7 +331,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                       children: [
                         CircularProgressIndicator(),
                         SizedBox(height: 16),
-                        Text('جاري المعالجة...'),
+                        Text('جاري الإعداد...'),
                       ],
                     ),
                   ),
@@ -352,7 +383,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isEnabled ? '✅ مفعّل' : '⭕ غير مفعّل',
+                    isEnabled ? '✅ مفعّل ويعمل' : '⭕ غير مفعّل',
                     style: const TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ],
@@ -370,8 +401,59 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
     );
   }
 
+  Widget _buildStatusCard() {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.green.shade50, Colors.green.shade100],
+          ),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.green.shade700,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'الإشعارات تعمل بكفاءة عالية',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 16),
+            Row(
+              children: [
+                Icon(
+                  Icons.notifications_active,
+                  color: Colors.green.shade700,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '$scheduledCount إشعار مجدول حالياً',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildInfoCard() {
-    final total = intervalMinutes * selectedAzkar.length;
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: Container(
@@ -390,9 +472,11 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
               '${selectedAzkar.length} ذكر',
             ),
             const Divider(height: 16),
-            _buildInfoRow(Icons.timer, 'الفاصل', _formatTime(intervalMinutes)),
-            const Divider(height: 16),
-            _buildInfoRow(Icons.loop, 'دورة كاملة', _formatTime(total)),
+            _buildInfoRow(
+              Icons.timer,
+              'الفاصل الزمني',
+              _formatTime(intervalMinutes),
+            ),
           ],
         ),
       ),
