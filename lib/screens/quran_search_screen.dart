@@ -33,14 +33,19 @@ class _QuranSearchScreenState extends State<QuranSearchScreen> {
 
     setState(() => isSearching = true);
 
-    // محاكاة البحث غير المتزامن
-    Future.delayed(const Duration(milliseconds: 300), () {
+    // ✅ بحث غير متزامن مع debounce
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+
       final results = QuranService.searchQuran(query);
-      setState(() {
-        searchResults = results;
-        isSearching = false;
-        hasSearched = true;
-      });
+
+      if (mounted) {
+        setState(() {
+          searchResults = results;
+          isSearching = false;
+          hasSearched = true;
+        });
+      }
     });
   }
 

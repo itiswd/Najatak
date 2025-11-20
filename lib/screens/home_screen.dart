@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:najatak/screens/periodic_zekr_screen.dart';
+import 'package:najatak/screens/quran_screen.dart';
 
 import 'azkar_screen.dart';
 import 'settings_screen.dart';
@@ -64,15 +65,8 @@ class _HomeScreenState extends State<HomeScreen>
                     children: [
                       const SizedBox(height: 10),
                       _buildWelcomeCard(),
-                      const SizedBox(height: 24),
-                      _buildSectionTitle('الميزات الرئيسية'),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 32),
                       _buildMainFeatures(),
-                      const SizedBox(height: 24),
-                      _buildSectionTitle('قريباً'),
-                      const SizedBox(height: 16),
-                      _buildComingSoonFeatures(),
-                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -200,30 +194,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 24,
-          decoration: BoxDecoration(
-            color: const Color(0xFF1B5E20),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF303030),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildMainFeatures() {
     return Column(
       children: [
@@ -262,27 +232,8 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ],
         ),
-      ],
-    );
-  }
+        SizedBox(height: 24),
 
-  Widget _buildComingSoonFeatures() {
-    return Column(
-      children: [
-        _buildComingSoonCard(
-          title: 'مواقيت الصلاة',
-          subtitle: 'أوقات الصلاة حسب موقعك',
-          icon: Icons.access_time,
-          color: const Color(0xFF1565C0),
-        ),
-        const SizedBox(height: 12),
-        _buildComingSoonCard(
-          title: 'اتجاه القبلة',
-          subtitle: 'حدد اتجاه القبلة بسهولة',
-          icon: Icons.explore,
-          color: const Color(0xFFD84315),
-        ),
-        const SizedBox(height: 12),
         _buildComingSoonCard(
           title: 'القرآن الكريم',
           subtitle: 'اقرأ واستمع للقرآن',
@@ -394,25 +345,10 @@ class _HomeScreenState extends State<HomeScreen>
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.white),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text('$title قريباً إن شاء الله')),
-                  ],
-                ),
-                backgroundColor: color,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                margin: const EdgeInsets.all(16),
-              ),
-            );
-          },
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const QuranScreen()),
+          ),
           borderRadius: BorderRadius.circular(15),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -445,25 +381,6 @@ class _HomeScreenState extends State<HomeScreen>
                         style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                       ),
                     ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withAlpha(25),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.orange.withAlpha(51)),
-                  ),
-                  child: const Text(
-                    'قريباً',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange,
-                    ),
                   ),
                 ),
               ],

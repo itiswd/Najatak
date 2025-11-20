@@ -287,7 +287,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   ayahNumber,
                   verses[ayahNumber - 1],
                 );
-                await Share.share(formattedText);
+                await SharePlus.instance.share(
+                  ShareParams(text: formattedText),
+                );
               },
             ),
             _buildOptionTile(

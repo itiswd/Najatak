@@ -261,16 +261,24 @@ class QuranService {
   // بحث في القرآن
   // ═══════════════════════════════════════════════════════════════
 
-  static List<Map<String, dynamic>> searchQuran(String query) {
+  // ✅ بحث محسّن مع limit
+  static List<Map<String, dynamic>> searchQuran(
+    String query, {
+    int limit = 30,
+  }) {
     if (query.trim().isEmpty) return [];
 
     final results = <Map<String, dynamic>>[];
     final lowerQuery = query.toLowerCase().trim();
 
     for (int surah = 1; surah <= 114; surah++) {
+      if (results.length >= limit) break; // ✅ إيقاف مبكر
+
       final versesCount = quran.getVerseCount(surah);
 
       for (int ayah = 1; ayah <= versesCount; ayah++) {
+        if (results.length >= limit) break; // ✅ إيقاف مبكر
+
         final verse = getAyah(surah, ayah);
 
         if (verse.toLowerCase().contains(lowerQuery)) {
@@ -282,15 +290,12 @@ class QuranService {
             'juz': getJuzNumber(surah, ayah),
             'page': getPageNumber(surah, ayah),
           });
-
-          if (results.length >= 50) return results;
         }
       }
     }
 
     return results;
   }
-
   // ═══════════════════════════════════════════════════════════════
   // التفسير المبسط
   // ═══════════════════════════════════════════════════════════════
