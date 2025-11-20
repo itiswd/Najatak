@@ -1,3 +1,5 @@
+import 'dart:async'; // 🌟 إضافة: لإدارة StreamSubscription
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
@@ -36,26 +38,36 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   final ItemPositionsListener itemPositionsListener =
       ItemPositionsListener.create();
 
+  StreamSubscription?
+  _playerStateSubscription; // 🌟 إضافة: للاشتراك في حالة المشغل
+
   @override
   void initState() {
     super.initState();
     _loadSurahData();
     _listenToScroll();
-    _listenToAudioPlayer();
+    _listenToAudioPlayer(); // 🌟 الاستماع لحالة المشغل
   }
 
   @override
   void dispose() {
+    _playerStateSubscription
+        ?.cancel(); // ✅ إلغاء الاشتراك عند إزالة الـ State (يحل مشكلة الخطأ بعد انتهاء التشغيل)
     AudioPlayerService.stop();
     super.dispose();
   }
 
+  // 🌟 دالة معدلة للاستماع لحالة المشغل الصوتي
   void _listenToAudioPlayer() {
-    AudioPlayerService.playerStateStream.listen((state) {
-      if (state.processingState == ProcessingState.completed) {
-        setState(() => playingAyahNumber = null);
-      }
-    });
+    _playerStateSubscription = AudioPlayerService.player.playerStateStream
+        .listen((state) {
+          if (state.processingState == ProcessingState.completed) {
+            if (mounted) {
+              // ✅ التأكد من أن الـ Widget ما زال موجودًا قبل التحديث
+              setState(() => playingAyahNumber = null);
+            }
+          }
+        });
   }
 
   void _listenToScroll() {
@@ -86,25 +98,36 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   }
 
   Future<void> _loadSurahData() async {
+    if (!mounted) return;
     setState(() => isLoading = true);
 
-    final allSurahs = QuranService.getAllSurahs();
-    surahInfo = allSurahs[widget.surahNumber - 1];
-    verses = QuranService.getSurahVerses(widget.surahNumber);
-    isDarkMode = await QuranService.getDarkMode();
+    // 🚀 تحسين الأداء: تنفيذ عمليات جلب البيانات التي قد تكون ثقيلة في خلفية غير متزامنة
+    final surahInfoResult = await Future.microtask(
+      () => QuranService.getAllSurahs()[widget.surahNumber - 1],
+    );
+    final versesResult = await Future.microtask(
+      () => QuranService.getSurahVerses(widget.surahNumber),
+    );
+    final isDarkModeResult = await QuranService.getDarkMode();
+    final bookmarksResult = await QuranService.getBookmarks();
 
-    final bookmarks = await QuranService.getBookmarks();
-    bookmarkedAyahs = bookmarks
-        .where((b) => b.surahNumber == widget.surahNumber)
-        .map((b) => b.ayahNumber)
-        .toSet();
+    if (mounted) {
+      surahInfo = surahInfoResult;
+      verses = versesResult;
+      isDarkMode = isDarkModeResult;
 
-    setState(() => isLoading = false);
+      bookmarkedAyahs = bookmarksResult
+          .where((b) => b.surahNumber == widget.surahNumber)
+          .map((b) => b.ayahNumber)
+          .toSet();
 
-    if (widget.startAyahNumber != null && widget.startAyahNumber! > 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        itemScrollController.jumpTo(index: widget.startAyahNumber! - 1);
-      });
+      setState(() => isLoading = false);
+
+      if (widget.startAyahNumber != null && widget.startAyahNumber! > 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          itemScrollController.jumpTo(index: widget.startAyahNumber! - 1);
+        });
+      }
     }
   }
 
@@ -243,11 +266,20 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   await AudioPlayerService.stop();
                   setState(() => playingAyahNumber = null);
                 } else {
-                  await AudioPlayerService.playAyah(
-                    widget.surahNumber,
-                    ayahNumber,
-                  );
-                  setState(() => playingAyahNumber = ayahNumber);
+                  try {
+                    await AudioPlayerService.playAyah(
+                      widget.surahNumber,
+                      ayahNumber,
+                    );
+                    setState(() => playingAyahNumber = ayahNumber);
+                  } catch (e) {
+                    // ✅ تصفير حالة التشغيل وعرض رسالة خطأ عند فشل التشغيل
+                    setState(() => playingAyahNumber = null);
+                    _showSnackBar(
+                      'تعذر تشغيل الصوت. تحقق من اتصالك بالإنترنت.',
+                      Icons.error,
+                    );
+                  }
                 }
               },
             ),
@@ -597,7 +629,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                             ),
                           const SizedBox(width: 8),
                           Text(
-                            'الجزء $juzNumber',
+                            'الجزء ${QuranService.toArabicNumbers(juzNumber)}',
                             style: TextStyle(
                               fontSize: 12,
                               color: textColor.withAlpha(179),

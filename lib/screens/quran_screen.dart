@@ -42,15 +42,41 @@ class _QuranScreenState extends State<QuranScreen>
     setState(() => isLoading = true);
 
     // ✅ تحميل البيانات فقط عند الحاجة
-    allSurahs ??= QuranService.getAllSurahs();
-    bookmarks = await QuranService.getBookmarks();
-    lastProgress = await QuranService.getLastProgress();
-    khatmahProgress = await QuranService.getKhatmahProgress();
-    khatmahPercentage = await QuranService.getKhatmahPercentage();
+    allSurahs ??= await Future.microtask(
+      () => QuranService.getAllSurahs(),
+    ); // 🌟 استخدام Future.microtask لضمان عدم حظر الواجهة عند تحميل جميع السور
 
-    if (mounted) setState(() => isLoading = false);
+    // 1. استخدام compute أو فصل الـ await/setState
+    final bookmarksFuture = QuranService.getBookmarks();
+    final progressFuture = QuranService.getLastProgress();
+    final khatmahFuture = QuranService.getKhatmahProgress();
+
+    final results = await Future.wait([
+      bookmarksFuture,
+      progressFuture,
+      khatmahFuture,
+    ]);
+
+    final Map<String, bool> khatmah = results[2] as Map<String, bool>;
+    int percentage = 0;
+    if (allSurahs != null && allSurahs!.isNotEmpty) {
+      percentage = await Future.microtask(
+        () => (khatmah.keys.length * 100) ~/ allSurahs!.length,
+      ); // 🌟 حساب النسبة في خلفية
+    }
+
+    if (mounted) {
+      setState(() {
+        bookmarks = results[0] as List<AyahBookmark>;
+        lastProgress = results[1] as ReadingProgress?;
+        khatmahProgress = khatmah;
+        khatmahPercentage = percentage;
+        isLoading = false;
+      });
+    }
   }
 
+  // ... (باقي الكلاس)
   void _navigateToSurah(int surahNumber, {int? startAyah}) {
     Navigator.push(
       context,
@@ -68,7 +94,7 @@ class _QuranScreenState extends State<QuranScreen>
     super.build(context); // ✅ مطلوب لـ AutomaticKeepAliveClientMixin
 
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Scaffold(
         appBar: _buildAppBar(),
         body: isLoading
@@ -77,7 +103,6 @@ class _QuranScreenState extends State<QuranScreen>
                 children: [
                   _buildSurahsList(),
                   _buildBookmarksList(),
-                  _buildJuzList(),
                   _buildKhatmahTab(),
                 ],
               ),
@@ -119,7 +144,6 @@ class _QuranScreenState extends State<QuranScreen>
         tabs: [
           Tab(icon: Icon(Icons.menu_book), text: 'السور'),
           Tab(icon: Icon(Icons.bookmark), text: 'الإشارات'),
-          Tab(icon: Icon(Icons.library_books), text: 'الأجزاء'),
           Tab(icon: Icon(Icons.check_circle), text: 'الختمة'),
         ],
       ),
@@ -422,90 +446,6 @@ class _QuranScreenState extends State<QuranScreen>
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildJuzList() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: 30,
-      itemBuilder: (context, index) {
-        final juzNumber = index + 1;
-        return _buildJuzCard(juzNumber);
-      },
-    );
-  }
-
-  Widget _buildJuzCard(int juzNumber) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('قريباً: الجزء $juzNumber'),
-                backgroundColor: const Color(0xFF1B5E20),
-              ),
-            );
-          },
-          borderRadius: BorderRadius.circular(15),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
-                    ),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Center(
-                    child: Text(
-                      QuranService.toArabicNumbers(juzNumber),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'الجزء $juzNumber',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'اقرأ الجزء كاملاً',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.arrow_forward_ios, color: Color(0xFF1B5E20)),
               ],
             ),
           ),
