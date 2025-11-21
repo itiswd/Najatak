@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:najatak/screens/periodic_zekr_screen.dart';
 import 'package:najatak/screens/quran_screen.dart';
 
@@ -18,11 +19,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late AnimationController _shimmerController;
   late AnimationController _floatController;
+  late AnimationController _quranGlowController;
   late List<AnimationController> _cardControllers;
 
   @override
   void initState() {
     super.initState();
+
+    // ✅ تعيين ألوان شريط الحالة
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light, // أيقونات بيضاء
+        statusBarBrightness: Brightness.dark, // للـ iOS
+      ),
+    );
+
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
@@ -38,8 +50,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 2500),
     )..repeat(reverse: true);
 
+    _quranGlowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+
     _cardControllers = List.generate(
-      3,
+      4,
       (index) => AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 600),
@@ -52,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _animateCards() async {
     for (int i = 0; i < _cardControllers.length; i++) {
       await Future.delayed(Duration(milliseconds: 100 * i));
-      _cardControllers[i].forward();
+      if (mounted) _cardControllers[i].forward();
     }
   }
 
@@ -61,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _pulseController.dispose();
     _shimmerController.dispose();
     _floatController.dispose();
+    _quranGlowController.dispose();
     for (var controller in _cardControllers) {
       controller.dispose();
     }
@@ -71,23 +89,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topRight,
             end: Alignment.bottomLeft,
             colors: [
-              const Color(0xFF0D4D3F),
-              const Color(0xFF1B5E20),
-              const Color(0xFF2E7D32),
-              const Color(0xFF1B5E20),
+              Color(0xFF0D4D3F),
+              Color(0xFF1B5E20),
+              Color(0xFF2E7D32),
+              Color(0xFF1B5E20),
             ],
-            stops: const [0.0, 0.3, 0.7, 1.0],
+            stops: [0.0, 0.3, 0.7, 1.0],
           ),
         ),
         child: Stack(
           children: [
             _buildAnimatedBackground(),
             SafeArea(
+              top: true,
+              bottom: false,
+              left: false,
+              right: false,
               child: Column(
                 children: [
                   _buildModernHeader(),
@@ -217,37 +239,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-
                 AnimatedBuilder(
                   animation: _pulseController,
                   builder: (context, child) {
                     return Opacity(
                       opacity: 0.2 + (_pulseController.value * 0.8),
-                      child: Row(
+                      child: const Row(
                         children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            margin: EdgeInsets.only(top: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF4CAF50),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF4CAF50,
-                                  ).withOpacity(0.6),
-                                  blurRadius: 8,
-                                  spreadRadius: 2,
-                                ),
-                              ],
+                          Padding(
+                            padding: EdgeInsets.only(top: 4.0),
+                            child: Icon(
+                              Icons.auto_awesome_rounded,
+                              color: Color(0xFF4CAF50),
+                              size: 14,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          const Text(
+                          SizedBox(width: 6),
+                          Text(
                             'رفيقك في الذكر والعبادة',
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 14,
                               color: Colors.white,
                               fontWeight: FontWeight.w500,
                               letterSpacing: 0.5,
@@ -297,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   child: const Icon(
-                    Icons.edit_notifications,
+                    Icons.settings_rounded,
                     color: Colors.white,
                     size: 26,
                   ),
@@ -380,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ],
                         ),
                         child: const Icon(
-                          Icons.auto_awesome_rounded,
+                          Icons.mosque_rounded,
                           color: Colors.white,
                           size: 32,
                         ),
@@ -426,6 +437,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 🌟 القرآن الكريم - العنصر الرئيسي والأبرز
         SlideTransition(
           position: Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
               .animate(
@@ -436,14 +448,44 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
           child: FadeTransition(
             opacity: _cardControllers[0],
+            child: _buildPremiumQuranCard(),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // عنوان قسم الأذكار
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Text(
+            'الأذكار اليومية',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // صفان من الأذكار
+        SlideTransition(
+          position: Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+              .animate(
+                CurvedAnimation(
+                  parent: _cardControllers[1],
+                  curve: Curves.easeOutCubic,
+                ),
+              ),
+          child: FadeTransition(
+            opacity: _cardControllers[1],
             child: Row(
               children: [
                 Expanded(
-                  child: _buildPremiumFeatureCard(
-                    title: 'الأذكار',
-                    subtitle: 'أذكار الصباح\nوالمساء',
-                    icon: Icons.favorite_rounded,
-                    colors: const [Color(0xFF2E7D32), Color(0xFF1B5E20)],
+                  child: _buildCompactFeatureCard(
+                    title: 'أذكار المسلم',
+                    subtitle: 'كل أذكار المسلم',
+                    icon: Icons.wb_sunny_rounded,
+                    colors: const [Color(0xFFFF6F00), Color(0xFFE65100)],
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -452,11 +494,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: _buildPremiumFeatureCard(
-                    title: 'أذكار دورية',
-                    subtitle: 'تنبيهات\nمنتظمة',
+                  child: _buildCompactFeatureCard(
+                    title: 'الأذكار الدورية',
+                    subtitle: 'متكررة',
                     icon: Icons.repeat_rounded,
                     colors: const [Color(0xFF00897B), Color(0xFF00695C)],
                     onTap: () => Navigator.push(
@@ -471,25 +513,218 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-        const SizedBox(height: 24),
-        SlideTransition(
-          position: Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
-              .animate(
-                CurvedAnimation(
-                  parent: _cardControllers[2],
-                  curve: Curves.easeOutCubic,
+      ],
+    );
+  }
+
+  // 🌟 بطاقة القرآن المميزة والاحترافية
+  Widget _buildPremiumQuranCard() {
+    return AnimatedBuilder(
+      animation: _quranGlowController,
+      builder: (context, child) {
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const QuranScreen()),
+            ),
+            borderRadius: BorderRadius.circular(28),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF6A1B9A),
+                    Color(0xFF7B1FA2),
+                    Color(0xFF8E24AA),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(
+                      0xFF7B1FA2,
+                    ).withOpacity(0.3 + (_quranGlowController.value * 0.2)),
+                    blurRadius: 20 + (_quranGlowController.value * 10),
+                    offset: const Offset(0, 10),
+                    spreadRadius: 2,
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFF7B1FA2).withOpacity(0.1),
+                    blurRadius: 40,
+                    offset: const Offset(0, 20),
+                  ),
+                ],
               ),
-          child: FadeTransition(
-            opacity: _cardControllers[2],
-            child: _buildQuranCard(),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      // أيقونة القرآن
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 2,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.menu_book_rounded,
+                          color: Colors.white,
+                          size: 48,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // النصوص
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'القرآن الكريم',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                shadows: [
+                                  Shadow(
+                                    blurRadius: 10,
+                                    color: Colors.black26,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              'اقرأ واستمع للقرآن الكريم',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // شريط المعلومات
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildQuranStat(
+                          icon: Icons.book_outlined,
+                          label: '114 سورة',
+                        ),
+                        Container(
+                          width: 1,
+                          height: 30,
+                          color: Colors.white.withOpacity(0.3),
+                        ),
+                        _buildQuranStat(
+                          icon: Icons.format_list_numbered_rounded,
+                          label: '30 جزء',
+                        ),
+                        Container(
+                          width: 1,
+                          height: 30,
+                          color: Colors.white.withOpacity(0.3),
+                        ),
+                        _buildQuranStat(
+                          icon: Icons.headphones_rounded,
+                          label: 'صوتي',
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // زر الدخول
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'ابدأ القراءة الآن',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF7B1FA2),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: Color(0xFF7B1FA2),
+                          size: 24,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildQuranStat({required IconData icon, required String label}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: Colors.white, size: 18),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPremiumFeatureCard({
+  // بطاقات الأذكار المدمجة
+  Widget _buildCompactFeatureCard({
     required String title,
     required String subtitle,
     required IconData icon,
@@ -500,80 +735,73 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
-          height: 200,
+          height: 140,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: colors,
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: colors[0].withOpacity(0.4),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
+                color: colors[0].withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
                 spreadRadius: 1,
               ),
             ],
           ),
           child: Stack(
             children: [
+              // خلفية دائرية
               Positioned(
-                top: -40,
-                right: -40,
+                top: -20,
+                right: -20,
                 child: Container(
-                  width: 140,
-                  height: 140,
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withOpacity(0.1),
                   ),
                 ),
               ),
-              Positioned(
-                bottom: -20,
-                left: -20,
-                child: Icon(
-                  icon,
-                  size: 100,
-                  color: Colors.white.withOpacity(0.08),
-                ),
-              ),
+
+              // المحتوى
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: Colors.white.withOpacity(0.3),
                           width: 1.5,
                         ),
                       ),
-                      child: Icon(icon, color: Colors.white, size: 28),
+                      child: Icon(icon, color: Colors.white, size: 24),
                     ),
                     const Spacer(),
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
-                        letterSpacing: 0.5,
+                        letterSpacing: 0.3,
                       ),
                     ),
-                    const SizedBox(height: 6),
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         color: Colors.white.withOpacity(0.85),
                         fontWeight: FontWeight.w500,
                       ),
@@ -581,112 +809,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ],
                 ),
               ),
+              // سهم
               Positioned(
-                bottom: 16,
-                left: 16,
+                bottom: 12,
+                left: 12,
                 child: Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
                     Icons.arrow_forward_rounded,
                     color: Colors.white,
-                    size: 20,
+                    size: 16,
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuranCard() {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const QuranScreen()),
-        ),
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7B1FA2), Color(0xFF6A1B9A)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF7B1FA2).withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.menu_book_rounded,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(width: 18),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'القرآن الكريم',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF212121),
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'اقرأ واستمع للقرآن الكريم',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF757575),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF7B1FA2).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Color(0xFF7B1FA2),
-                  size: 18,
                 ),
               ),
             ],
