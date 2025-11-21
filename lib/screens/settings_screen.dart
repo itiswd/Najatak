@@ -253,7 +253,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      title: const Text('إدارة الإشعارات'),
+      title: const Text(
+        'إدارة الإشعارات',
+        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      ),
+      toolbarHeight: 80,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios),
         onPressed: () => Navigator.pop(context),
@@ -285,7 +289,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
@@ -297,7 +301,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white.withAlpha(51),
                 borderRadius: BorderRadius.circular(16),
@@ -310,7 +314,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 size: 36,
               ),
             ),
-            const SizedBox(width: 20),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,16 +323,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     activeCount > 0 ? 'الإشعارات نشطة' : 'لا توجد إشعارات',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
                   Text(
                     activeCount > 0
                         ? 'لديك $activeCount نوع مُفعّل'
                         : 'قم بتفعيل الأذكار من الصفحات المخصصة',
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                 ],
               ),

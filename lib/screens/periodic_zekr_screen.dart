@@ -717,7 +717,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
   // ═══════════════════════════════════════════════════════════════
   Widget _buildStatusCard() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: _isEnabled
@@ -741,7 +741,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -754,34 +754,34 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                   size: 36,
                 ),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _isEnabled ? 'الأذكار مُفعّلة' : 'الأذكار متوقفة',
+                      _isEnabled ? 'الأذكار مُفعَّلة' : 'الأذكار متوقفة',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 22,
+                        fontSize: 21,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 6),
+
                     Text(
                       _isEnabled
                           ? 'تعمل تلقائياً في الخلفية'
                           : 'قم بتشغيل الأذكار للبدء',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.9),
-                        fontSize: 14,
+                        fontSize: 13,
                       ),
                     ),
                   ],
                 ),
               ),
               Transform.scale(
-                scale: 1.2,
+                scale: 1,
                 child: Switch(
                   value: _isEnabled,
                   onChanged: _isLoading ? null : _toggleEnabled,
@@ -872,11 +872,11 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
           onTap: _isLoading ? null : _showIntervalSheet,
           borderRadius: BorderRadius.circular(25),
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -889,10 +889,10 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                   child: const Icon(
                     Icons.timer_outlined,
                     color: Color(0xFF1B5E20),
-                    size: 32,
+                    size: 36,
                   ),
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -900,16 +900,16 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                       const Text(
                         'الفاصل الزمني',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 6),
+
                       Text(
                         _formatInterval(_intervalMinutes),
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF1B5E20),
                         ),
@@ -959,13 +959,13 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
           onTap: _isLoading ? null : _showAzkarSheet,
           borderRadius: BorderRadius.circular(25),
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
@@ -978,10 +978,10 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                       child: const Icon(
                         Icons.menu_book_rounded,
                         color: Color(0xFF1B5E20),
-                        size: 32,
+                        size: 36,
                       ),
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -989,18 +989,18 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                           const Text(
                             'الأذكار المحددة',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
                             ),
                           ),
-                          const SizedBox(height: 6),
+
                           Text(
                             _selectedIds.isEmpty
                                 ? 'لم يتم اختيار أذكار'
                                 : '${_selectedIds.length} من ${_allAzkar.length} ذكر',
                             style: TextStyle(
-                              fontSize: 20,
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: _selectedIds.isEmpty
                                   ? Colors.grey[600]

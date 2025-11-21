@@ -237,21 +237,21 @@ class _AzkarScreenState extends State<AzkarScreen>
       case 'morning':
         initialTime = morningTime;
         notificationId = 100;
-        title = 'أذكار الصباح';
+        title = 'أذكار الصباح • نَجَاتَك';
         body = 'حان وقت أذكار الصباح';
         notifType = NotificationType.morning;
         break;
       case 'evening':
         initialTime = eveningTime;
         notificationId = 101;
-        title = 'أذكار المساء';
+        title = 'أذكار المساء • نَجَاتَك';
         body = 'حان وقت أذكار المساء';
         notifType = NotificationType.evening;
         break;
       case 'sleep':
         initialTime = sleepTime;
         notificationId = 102;
-        title = 'أذكار النوم';
+        title = 'أذكار النوم • نَجَاتَك';
         body = 'لا تنسى أذكار النوم قبل أن تنام';
         notifType = NotificationType.sleep;
         break;
@@ -348,6 +348,7 @@ class _AzkarScreenState extends State<AzkarScreen>
         style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
       ),
       elevation: 0,
+      toolbarHeight: 80,
       leading: InkWell(
         onTap: () {
           Navigator.pop(context);
