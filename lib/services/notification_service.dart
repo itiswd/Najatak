@@ -57,7 +57,7 @@ class NotificationService {
       await androidImplementation.createNotificationChannel(
         AndroidNotificationChannel(
           'morning_azkar_channel',
-          'أذكار الصباح',
+          'أذكار الصباح • نَجَاتَك',
           description: 'إشعارات أذكار الصباح',
           importance: Importance.max,
           playSound: true,
@@ -70,7 +70,7 @@ class NotificationService {
       await androidImplementation.createNotificationChannel(
         AndroidNotificationChannel(
           'evening_azkar_channel',
-          'أذكار المساء',
+          'أذكار المساء • نَجَاتَك',
           description: 'إشعارات أذكار المساء',
           importance: Importance.max,
           playSound: true,
@@ -83,7 +83,7 @@ class NotificationService {
       await androidImplementation.createNotificationChannel(
         AndroidNotificationChannel(
           'sleep_azkar_channel',
-          'أذكار النوم',
+          'أذكار النوم • نَجَاتَك',
           description: 'إشعارات أذكار النوم',
           importance: Importance.max,
           playSound: true,
@@ -310,11 +310,11 @@ class NotificationService {
   static String _getChannelName(NotificationType type) {
     switch (type) {
       case NotificationType.morning:
-        return 'أذكار الصباح';
+        return 'أذكار الصباح • نَجَاتَك';
       case NotificationType.evening:
-        return 'أذكار المساء';
+        return 'أذكار المساء • نَجَاتَك';
       case NotificationType.sleep:
-        return 'أذكار النوم';
+        return 'أذكار النوم • نَجَاتَك';
     }
   }
 
