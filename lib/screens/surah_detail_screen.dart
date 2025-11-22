@@ -234,7 +234,11 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      title: Text(isLoading ? 'جاري التحميل...' : surahInfo.name),
+      title: Text(
+        isLoading ? 'جاري التحميل...' : surahInfo.name,
+        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+      ),
+      toolbarHeight: 80,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios),
         onPressed: () {
@@ -294,12 +298,11 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 8),
           Text(
-            surahInfo.englishNameTranslation,
+            surahInfo.englishName,
             style: const TextStyle(fontSize: 16, color: Colors.white70),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -315,17 +318,15 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
             ],
           ),
           if (widget.surahNumber != 1 && widget.surahNumber != 9) ...[
-            const SizedBox(height: 16),
-            const Divider(color: Colors.white38),
-            const SizedBox(height: 16),
-            Text(
-              QuranService.getBasmala(),
-              style: const TextStyle(
-                fontSize: 24,
+            const SizedBox(height: 4),
+            const Divider(color: Colors.white38, thickness: 0.5),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 40),
+              child: Image.asset(
+                'assets/images/البسملة.png',
                 color: Colors.white,
-                fontFamily: 'AmiriQuran',
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ],
@@ -335,7 +336,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
   Widget _buildInfoChip(String label, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(51),
         borderRadius: BorderRadius.circular(20),
@@ -344,11 +345,12 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 16, color: Colors.white),
-          const SizedBox(width: 6),
+          const SizedBox(width: 2),
           Text(
             label,
             style: const TextStyle(
               color: Colors.white,
+              fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -402,49 +404,51 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     final textColor = isDarkMode ? Colors.white : const Color(0xFF303030);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: isBookmarked ? const Color(0xFF1B5E20).withAlpha(25) : cardColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isPlaying
               ? Colors.amber
               : isBookmarked
               ? const Color(0xFF1B5E20)
-              : Colors.grey.shade200,
+              : Colors.grey.shade300,
           width: isPlaying ? 3 : (isBookmarked ? 2 : 1),
         ),
-        boxShadow: isPlaying
-            ? [
-                BoxShadow(
-                  color: Colors.amber.withAlpha(102),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
+        boxShadow: [
+          BoxShadow(
+            color: isPlaying
+                ? Colors.amber.withAlpha(80)
+                : Colors.black.withAlpha(20),
+            blurRadius: isPlaying ? 14 : 10,
+            spreadRadius: 1,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ═══════════════════════════════════════
-            // رأس الآية (رقم + معلومات)
-            // ═══════════════════════════════════════
+            /// ============================================================
+            ///   رأس الآية (رقم الآية + معلومات الجزء + الإشارة)
+            /// ============================================================
             Row(
               children: [
+                // رقم الآية داخل صندوق أنيق
                 Container(
-                  width: 45,
-                  height: 45,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
                     ),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF1B5E20).withAlpha(51),
+                        color: const Color(0xFF1B5E20).withAlpha(70),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -452,27 +456,21 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   ),
                   child: Center(
                     child: isPlaying
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
+                        ? Icon(Icons.pause, color: Colors.white)
                         : Text(
                             QuranService.toArabicNumbers(ayahNumber),
                             style: const TextStyle(
                               color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 17,
                             ),
                           ),
                   ),
                 ),
-                const SizedBox(width: 12),
+
+                const SizedBox(width: 8),
+
+                // العناوين
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -480,7 +478,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                       Text(
                         'الآية ${QuranService.toArabicNumbers(ayahNumber)}',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                           color: textColor,
                         ),
@@ -488,67 +486,107 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                       Text(
                         'الجزء ${QuranService.toArabicNumbers(juzNumber)}',
                         style: TextStyle(
-                          fontSize: 12,
-                          color: textColor.withAlpha(128),
+                          fontSize: 13,
+                          color: textColor.withAlpha(150),
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (isBookmarked)
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1B5E20).withAlpha(25),
-                      borderRadius: BorderRadius.circular(10),
+
+                Row(
+                  spacing: 8,
+                  children: [
+                    if (isBookmarked)
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1B5E20).withAlpha(25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.bookmark,
+                          color: Color(0xFF1B5E20),
+                          size: 22,
+                        ),
+                      ),
+                    // ─── زر التشغيل ───
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1B5E20).withAlpha(25),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: InkWell(
+                        onTap: () async {
+                          if (playingAyahNumber == ayahNumber) {
+                            await AudioPlayerService.stop();
+                            setState(() => playingAyahNumber = null);
+                          } else {
+                            try {
+                              await AudioPlayerService.playAyah(
+                                widget.surahNumber,
+                                ayahNumber,
+                              );
+                              setState(() => playingAyahNumber = ayahNumber);
+                            } catch (e) {
+                              setState(() => playingAyahNumber = null);
+                              _showSnackBar('تعذر تشغيل الصوت', Icons.error);
+                            }
+                          }
+                        },
+                        child: Icon(
+                          playingAyahNumber == ayahNumber
+                              ? Icons.stop
+                              : Icons.play_arrow,
+                          color: Color(0xFF1B5E20),
+                          size: 22,
+                        ),
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.bookmark,
-                      color: Color(0xFF1B5E20),
-                      size: 20,
-                    ),
-                  ),
+                  ],
+                ),
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-            // ═══════════════════════════════════════
-            // نص الآية
-            // ═══════════════════════════════════════
+            /// ============================================================
+            /// نص الآية
+            /// ============================================================
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isDarkMode
-                    ? Colors.black.withAlpha(25)
-                    : const Color(0xFF1B5E20).withAlpha(5),
-                borderRadius: BorderRadius.circular(15),
+                    ? Colors.white.withAlpha(8)
+                    : const Color(0xFF1B5E20).withAlpha(8),
+                borderRadius: BorderRadius.circular(18),
               ),
               child: Text(
                 verse,
-                textAlign: TextAlign.justify,
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: fontSize,
-                  height: 2.2,
+                  height: 2.1,
                   fontFamily: 'AmiriQuran',
                   color: textColor,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // ═══════════════════════════════════════
-            // التفسير
-            // ═══════════════════════════════════════
+            /// ============================================================
+            /// التفسير
+            /// ============================================================
             _buildTafsirSection(ayahNumber, textColor),
 
             const SizedBox(height: 16),
 
-            // ═══════════════════════════════════════
-            // أزرار الإجراءات
-            // ═══════════════════════════════════════
+            /// ============================================================
+            /// أزرار الإجراءات
+            /// ============================================================
             _buildActionButtons(ayahNumber, verse),
           ],
         ),
@@ -588,7 +626,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                'التفسير المختصر',
+                'التفسير الميسر',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -618,30 +656,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       runSpacing: 8,
       alignment: WrapAlignment.spaceEvenly,
       children: [
-        // ─── زر التشغيل ───
-        _buildActionButton(
-          icon: playingAyahNumber == ayahNumber ? Icons.stop : Icons.play_arrow,
-          label: playingAyahNumber == ayahNumber ? 'إيقاف' : 'تشغيل',
-          color: Colors.amber,
-          onTap: () async {
-            if (playingAyahNumber == ayahNumber) {
-              await AudioPlayerService.stop();
-              setState(() => playingAyahNumber = null);
-            } else {
-              try {
-                await AudioPlayerService.playAyah(
-                  widget.surahNumber,
-                  ayahNumber,
-                );
-                setState(() => playingAyahNumber = ayahNumber);
-              } catch (e) {
-                setState(() => playingAyahNumber = null);
-                _showSnackBar('تعذر تشغيل الصوت', Icons.error);
-              }
-            }
-          },
-        ),
-
         // ─── زر الإشارة المرجعية ───
         _buildActionButton(
           icon: bookmarkedAyahs.contains(ayahNumber)
@@ -699,28 +713,20 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: color.withAlpha(25),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withAlpha(51)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 18),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
