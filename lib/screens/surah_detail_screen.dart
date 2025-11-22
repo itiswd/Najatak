@@ -64,7 +64,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
             }
           } else if (state.processingState == ProcessingState.ready &&
               state.playing) {
-            // التأكد من تحديث الحالة عند بدء التشغيل فعلياً
             if (mounted) {
               setState(() {});
             }
@@ -76,11 +75,21 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     itemPositionsListener.itemPositions.addListener(() {
       final positions = itemPositionsListener.itemPositions.value;
       if (positions.isNotEmpty) {
-        final firstVisible = positions
-            .where((position) => position.itemTrailingEdge > 0)
-            .reduce((a, b) => a.index < b.index ? a : b);
+        // نطرح 1 لأن أول عنصر هو الـ header
+        final visibleAyahs = positions
+            .where(
+              (position) => position.itemTrailingEdge > 0 && position.index > 0,
+            )
+            .toList();
 
-        final ayahNumber = firstVisible.index + 1;
+        if (visibleAyahs.isEmpty) return;
+
+        final firstVisible = visibleAyahs.reduce(
+          (a, b) => a.index < b.index ? a : b,
+        );
+        final ayahNumber =
+            firstVisible.index; // العدد صح لأن الـ header في index 0
+
         final juzNumber = QuranService.getJuzNumber(
           widget.surahNumber,
           ayahNumber,
@@ -125,7 +134,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
       if (widget.startAyahNumber != null && widget.startAyahNumber! > 0) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          itemScrollController.jumpTo(index: widget.startAyahNumber! - 1);
+          // نضيف 1 لأن الـ header في index 0
+          itemScrollController.jumpTo(index: widget.startAyahNumber!);
         });
       }
     }
@@ -229,12 +239,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       appBar: _buildAppBar(),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                _buildSurahHeader(),
-                Expanded(child: _buildVersesList()),
-              ],
-            ),
+          : _buildVersesList(),
     );
   }
 
@@ -373,13 +378,19 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     return Container(
       color: bgColor,
       child: ScrollablePositionedList.builder(
-        itemCount: verses.length,
+        itemCount: verses.length + 1, // +1 للـ header
         itemScrollController: itemScrollController,
         itemPositionsListener: itemPositionsListener,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(bottom: 16),
         itemBuilder: (context, index) {
-          final ayahNumber = index + 1;
-          final verse = verses[index];
+          // أول عنصر هو الـ header
+          if (index == 0) {
+            return _buildSurahHeader();
+          }
+
+          // باقي العناصر هي الآيات
+          final ayahNumber = index;
+          final verse = verses[index - 1];
           final isBookmarked = bookmarkedAyahs.contains(ayahNumber);
           final isPlaying = playingAyahNumber == ayahNumber;
           final juzNumber = QuranService.getJuzNumber(
@@ -387,12 +398,15 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
             ayahNumber,
           );
 
-          return _buildAyahCard(
-            ayahNumber,
-            verse,
-            isBookmarked,
-            isPlaying,
-            juzNumber,
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildAyahCard(
+              ayahNumber,
+              verse,
+              isBookmarked,
+              isPlaying,
+              juzNumber,
+            ),
           );
         },
       ),
@@ -409,13 +423,11 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     final cardColor = isDarkMode ? const Color(0xFF2D2D2D) : Colors.white;
     final textColor = isDarkMode ? Colors.white : const Color(0xFF303030);
 
-    // ألوان مريحة للعين
     Color borderColor;
     Color backgroundColor;
     List<BoxShadow> shadows;
 
     if (isPlaying) {
-      // حالة التشغيل - لون كهرماني ناعم
       borderColor = const Color(0xFFFFB74D);
       backgroundColor = isDarkMode
           ? const Color(0xFFFFB74D).withAlpha(15)
@@ -429,7 +441,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         ),
       ];
     } else if (isBookmarked) {
-      // حالة الإشارة المرجعية - أزرق هادئ
       borderColor = const Color(0xFF42A5F5);
       backgroundColor = isDarkMode
           ? const Color(0xFF42A5F5).withAlpha(20)
@@ -443,7 +454,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         ),
       ];
     } else {
-      // الحالة العادية
       borderColor = isDarkMode ? Colors.grey.shade700 : Colors.grey.shade200;
       backgroundColor = cardColor;
       shadows = [
@@ -472,12 +482,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            /// ============================================================
-            ///   رأس الآية (رقم الآية + معلومات الجزء + الإشارة)
-            /// ============================================================
             Row(
               children: [
-                // رقم الآية داخل صندوق أنيق
                 Container(
                   width: 44,
                   height: 44,
@@ -507,10 +513,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                           ),
                   ),
                 ),
-
                 const SizedBox(width: 8),
-
-                // العناوين
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -533,7 +536,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                     ],
                   ),
                 ),
-
                 Row(
                   spacing: 8,
                   children: [
@@ -555,7 +557,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                           ),
                         ),
                       ),
-                    // ─── زر التشغيل ───
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -571,11 +572,8 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                             setState(() => playingAyahNumber = null);
                           } else {
                             try {
-                              // إيقاف أي صوت قيد التشغيل أولاً
                               await AudioPlayerService.stop();
                               setState(() => playingAyahNumber = ayahNumber);
-
-                              // بدء التشغيل
                               await AudioPlayerService.playAyah(
                                 widget.surahNumber,
                                 ayahNumber,
@@ -599,14 +597,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
-
-            /// ============================================================
-            /// نص الآية
-            /// ============================================================
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               decoration: BoxDecoration(
                 color: isDarkMode
                     ? Colors.white.withAlpha(8)
@@ -625,19 +618,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 12),
-
-            /// ============================================================
-            /// التفسير
-            /// ============================================================
             _buildTafsirSection(ayahNumber, textColor),
-
             const SizedBox(height: 16),
-
-            /// ============================================================
-            /// أزرار الإجراءات
-            /// ============================================================
             _buildActionButtons(ayahNumber, verse),
           ],
         ),
@@ -707,7 +690,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       runSpacing: 8,
       alignment: WrapAlignment.spaceEvenly,
       children: [
-        // ─── زر الإشارة المرجعية ───
         _buildActionButton(
           icon: bookmarkedAyahs.contains(ayahNumber)
               ? Icons.bookmark
@@ -718,8 +700,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
               : Colors.grey,
           onTap: () => _toggleBookmark(ayahNumber),
         ),
-
-        // ─── زر النسخ ───
         _buildActionButton(
           icon: Icons.copy,
           label: 'نسخ',
@@ -734,8 +714,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
             _showSnackBar('تم نسخ الآية', Icons.check_circle);
           },
         ),
-
-        // ─── زر المشاركة ───
         _buildActionButton(
           icon: Icons.share,
           label: 'مشاركة',

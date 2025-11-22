@@ -113,7 +113,7 @@ class _QuranScreenState extends State<QuranScreen>
     return AppBar(
       title: const Text(
         'القرآن الكريم',
-        style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
       ),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios),
@@ -175,71 +175,81 @@ class _QuranScreenState extends State<QuranScreen>
     final surah = allSurahs![lastProgress!.surahNumber - 1];
 
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _navigateToSurah(
-            lastProgress!.surahNumber,
-            startAyah: lastProgress!.ayahNumber,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(51),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: const Icon(
-                    Icons.play_circle_filled,
-                    color: Colors.white,
-                    size: 32,
-                  ),
+      child: Column(
+        children: [
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _navigateToSurah(
+                lastProgress!.surahNumber,
+                startAyah: lastProgress!.ayahNumber,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(51),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: const Icon(
+                        Icons.play_circle_filled,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'تابع القراءة',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            surah.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'الآية ${lastProgress!.ayahNumber}',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, color: Colors.white),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'تابع القراءة',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        surah.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'الآية ${lastProgress!.ayahNumber}',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.arrow_forward_ios, color: Colors.white),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -444,8 +454,12 @@ class _QuranScreenState extends State<QuranScreen>
                 Text(
                   bookmark.ayahText,
                   textDirection: TextDirection.rtl,
-                  style: const TextStyle(fontSize: 18, height: 2),
-                  maxLines: 3,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    height: 2,
+                    fontFamily: 'AmiriQuran',
+                  ),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
