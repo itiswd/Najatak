@@ -276,7 +276,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1B5E20).withOpacity(0.1),
+                      color: const Color(0xFF1B5E20).withAlpha(26),
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: const Icon(
@@ -328,7 +328,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                       boxShadow: isSelected
                           ? [
                               BoxShadow(
-                                color: const Color(0xFF1B5E20).withOpacity(0.3),
+                                color: const Color(0xFF1B5E20).withAlpha(77),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -373,7 +373,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.3),
+                                    color: Colors.white.withAlpha(77),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
@@ -435,7 +435,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1B5E20).withOpacity(0.1),
+                        color: const Color(0xFF1B5E20).withAlpha(26),
                         borderRadius: BorderRadius.circular(15),
                       ),
                       child: const Icon(
@@ -498,8 +498,8 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                         gradient: isSelected
                             ? LinearGradient(
                                 colors: [
-                                  const Color(0xFF1B5E20).withOpacity(0.1),
-                                  const Color(0xFF2E7D32).withOpacity(0.05),
+                                  const Color(0xFF1B5E20).withAlpha(26),
+                                  const Color(0xFF2E7D32).withAlpha(13),
                                 ],
                               )
                             : null,
@@ -585,7 +585,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withAlpha(13),
                       blurRadius: 10,
                       offset: const Offset(0, -2),
                     ),
@@ -730,7 +730,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
         boxShadow: [
           BoxShadow(
             color: (_isEnabled ? const Color(0xFF1B5E20) : Colors.grey)
-                .withOpacity(0.4),
+                .withAlpha(102),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -743,7 +743,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withAlpha(51),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Icon(
@@ -773,7 +773,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                           ? 'تعمل تلقائياً في الخلفية'
                           : 'قم بتشغيل الأذكار للبدء',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withAlpha(230),
                         fontSize: 13,
                       ),
                     ),
@@ -786,9 +786,9 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                   value: _isEnabled,
                   onChanged: _isLoading ? null : _toggleEnabled,
                   activeThumbColor: Colors.white,
-                  activeTrackColor: Colors.white.withOpacity(0.5),
+                  activeTrackColor: Colors.white.withAlpha(128),
                   inactiveThumbColor: Colors.white70,
-                  inactiveTrackColor: Colors.white.withOpacity(0.3),
+                  inactiveTrackColor: Colors.white.withAlpha(77),
                 ),
               ),
             ],
@@ -798,7 +798,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withAlpha(38),
                 borderRadius: BorderRadius.circular(15),
               ),
               child: Row(
@@ -812,7 +812,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                   Container(
                     width: 1,
                     height: 40,
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withAlpha(77),
                   ),
                   _buildStatusInfo(
                     Icons.format_list_numbered_rounded,
@@ -835,7 +835,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
         const SizedBox(height: 8),
         Text(
           label,
-          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
+          style: TextStyle(color: Colors.white.withAlpha(204), fontSize: 12),
         ),
         const SizedBox(height: 4),
         Text(
@@ -860,7 +860,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withAlpha(13),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -880,8 +880,8 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        const Color(0xFF1B5E20).withOpacity(0.1),
-                        const Color(0xFF2E7D32).withOpacity(0.05),
+                        const Color(0xFF1B5E20).withAlpha(26),
+                        const Color(0xFF2E7D32).withAlpha(13),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(18),
@@ -920,7 +920,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1B5E20).withOpacity(0.1),
+                    color: const Color(0xFF1B5E20).withAlpha(26),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -947,7 +947,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withAlpha(13),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -969,8 +969,8 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            const Color(0xFF1B5E20).withOpacity(0.1),
-                            const Color(0xFF2E7D32).withOpacity(0.05),
+                            const Color(0xFF1B5E20).withAlpha(26),
+                            const Color(0xFF2E7D32).withAlpha(13),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(18),
@@ -1013,7 +1013,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1B5E20).withOpacity(0.1),
+                        color: const Color(0xFF1B5E20).withAlpha(26),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -1029,10 +1029,10 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1B5E20).withOpacity(0.05),
+                      color: const Color(0xFF1B5E20).withAlpha(13),
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(
-                        color: const Color(0xFF1B5E20).withOpacity(0.1),
+                        color: const Color(0xFF1B5E20).withAlpha(26),
                       ),
                     ),
                     child: Column(
@@ -1136,7 +1136,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withAlpha(26),
             blurRadius: 15,
             offset: const Offset(0, -5),
           ),
@@ -1200,7 +1200,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   elevation: 5,
-                  shadowColor: const Color(0xFF1B5E20).withOpacity(0.4),
+                  shadowColor: const Color(0xFF1B5E20).withAlpha(102),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1235,7 +1235,7 @@ class _PeriodicAzkarScreenState extends State<PeriodicAzkarScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(25),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20),
+              BoxShadow(color: Colors.black.withAlpha(51), blurRadius: 20),
             ],
           ),
           child: Column(
