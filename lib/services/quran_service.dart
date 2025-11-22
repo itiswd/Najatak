@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:najatak/services/quran_tafseer_service.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -301,9 +302,7 @@ class QuranService {
   // ═══════════════════════════════════════════════════════════════
 
   static String getSimpleTafsir(int surahNumber, int ayahNumber) {
-    // يمكن تحسين هذا بإضافة API للتفسير
-    // هنا نموذج بسيط
-    return 'التفسير المبسط للآية $ayahNumber من سورة ${quran.getSurahNameArabic(surahNumber)}.\n\nيمكن إضافة تفسير من API خارجي أو قاعدة بيانات محلية.';
+    return QuranTafsirService.getTafsir(surahNumber, ayahNumber);
   }
 
   // ═══════════════════════════════════════════════════════════════
