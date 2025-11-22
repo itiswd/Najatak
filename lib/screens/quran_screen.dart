@@ -19,7 +19,6 @@ class QuranScreen extends StatefulWidget {
 
 class _QuranScreenState extends State<QuranScreen>
     with AutomaticKeepAliveClientMixin {
-  // ✅ تحميل lazy للبيانات
   List<SurahInfo>? allSurahs;
   List<AyahBookmark>? bookmarks;
   ReadingProgress? lastProgress;
@@ -112,14 +111,17 @@ class _QuranScreenState extends State<QuranScreen>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      title: const Text('القرآن الكريم'),
+      title: const Text(
+        'القرآن الكريم',
+        style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+      ),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios),
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.search),
+          icon: const Icon(Icons.manage_search, size: 32),
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const QuranSearchScreen()),
@@ -218,7 +220,7 @@ class _QuranScreenState extends State<QuranScreen>
                         surah.name,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 20,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -276,32 +278,32 @@ class _QuranScreenState extends State<QuranScreen>
                         '${surah.number}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1B5E20),
+                          color: Colors.black,
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
                         surah.name,
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        surah.englishNameTranslation,
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                        surah.englishName,
+                        style: TextStyle(fontSize: 13, color: Colors.grey[900]),
                       ),
                     ],
                   ),
                 ),
+                SizedBox(width: 8),
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -323,7 +325,7 @@ class _QuranScreenState extends State<QuranScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
                       '${surah.numberOfAyahs} آية',
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
