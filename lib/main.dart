@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'screens/home_screen.dart';
+import 'services/continuous_audio_handler.dart';
 import 'services/notification_service.dart';
 import 'services/periodic_notification_worker.dart';
 
@@ -12,8 +13,13 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // ✅ تهيئة خدمات الإشعارات
   await NotificationService.initialize();
   await PeriodicAzkarWorker.initialize();
+
+  // ✅ تهيئة معالج الصوت المستمر
+  final audioHandler = ContinuousAudioHandler();
+  await audioHandler.initialize();
 
   runApp(const Najatak());
 }

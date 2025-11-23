@@ -1,21 +1,57 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- ═══════════════════════════════════════════════════════════════
+         الصلاحيات الأساسية
+         ═══════════════════════════════════════════════════════════════ -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- الصلاحيات المطلوبة للإشعارات -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
+    <!-- ═══════════════════════════════════════════════════════════════
+         صلاحيات الإشعارات والتنبيهات
+         ═══════════════════════════════════════════════════════════════ -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    
+    <!-- ═══════════════════════════════════════════════════════════════
+         صلاحيات إدارة الطاقة والخلفية
+         ═══════════════════════════════════════════════════════════════ -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    
+    <!-- ═══════════════════════════════════════════════════════════════
+         صلاحيات الأذكار الدورية والمنبهات
+         ═══════════════════════════════════════════════════════════════ -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    
+    <!-- ═══════════════════════════════════════════════════════════════
+         صلاحيات التخزين والملفات
+         ═══════════════════════════════════════════════════════════════ -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    
+    <!-- ═══════════════════════════════════════════════════════════════
+         تحديد ميزات الجهاز المطلوبة
+         ═══════════════════════════════════════════════════════════════ -->
+    <uses-feature android:name="android.hardware.audio" android:required="false" />
+    
     <application
         android:label="نَجَاتَك"
+        android:icon="@mipmap/launcher_icon"
+        android:roundIcon="@mipmap/launcher_icon"
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon">
+        android:usesCleartextTraffic="true"
+        android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_scheme"
+        android:requestLegacyExternalStorage="true">
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             النشاط الرئيسي
+             ═══════════════════════════════════════════════════════════════ -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -27,44 +63,123 @@
             android:windowSoftInputMode="adjustResize"
             android:showWhenLocked="true"
             android:turnScreenOn="true">
+            
             <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@mipmap/launcher_icon"
-              />
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
+            
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
-        <!-- Receiver لإعادة جدولة الإشعارات بعد إعادة تشغيل الجهاز -->
-        <receiver 
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             خدمة قارئ القرآن (للقراءة المستمرة في الخلفية)
+             ═══════════════════════════════════════════════════════════════ -->
+        <service
+            android:name=".services.AudioPlayerService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback">
+            <!-- هذه الخدمة تتعامل مع الصوت وتسمح بالقراءة المستمرة -->
+        </service>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             خدمة النوتيفيكيشن
+             ═══════════════════════════════════════════════════════════════ -->
+        <service
+            android:name="com.dexterous.flutterlocalnotifications.FlutterLocalNotificationsService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             Receiver لإعادة جدولة الإشعارات بعد إعادة تشغيل الجهاز
+             ═══════════════════════════════════════════════════════════════ -->
+        <receiver
             android:name="androidx.work.impl.background.systemalarm.SystemAlarmService$AlarmIntentReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
-        
-        <!-- Receiver للإشعارات المجدولة -->
-        <receiver 
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             Receiver للإشعارات المجدولة والأذكار الدورية
+             ═══════════════════════════════════════════════════════════════ -->
+        <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
             android:enabled="true"
-            android:exported="true" />
-        
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             Receiver مخصص لإعادة جدولة الأذكار الدورية
+             ═══════════════════════════════════════════════════════════════ -->
+        <receiver
+            android:name=".receivers.BootCompleteReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             WorkManager - لإدارة المهام الدورية
+             ═══════════════════════════════════════════════════════════════ -->
+        <provider
+            android:name="androidx.work.impl.WorkManagerInitializer"
+            android:authorities="${applicationId}.workmanager-init"
+            android:exported="false"
+            tools:node="remove"
+            xmlns:tools="http://schemas.android.com/tools" />
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             معلومات Flutter
+             ═══════════════════════════════════════════════════════════════ -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             معلومات تطبيق إضافية
+             ═══════════════════════════════════════════════════════════════ -->
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
     </application>
-    
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         استعلامات الحزم (Package Queries)
+         ═══════════════════════════════════════════════════════════════ -->
     <queries>
         <intent>
-            <action android:name="android.intent.action.PROCESS_TEXT"/>
-            <data android:mimeType="text/plain"/>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+            <data android:mimeType="text/plain" />
+        </intent>
+        
+        <!-- للتطبيقات الأخرى التي قد تستقبل أو تبعث نوتيفيكيشنز -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
         </intent>
     </queries>
+
 </manifest>
