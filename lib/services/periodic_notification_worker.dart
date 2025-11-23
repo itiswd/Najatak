@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// lib/services/periodic_notification_worker.dart - النسخة المحسّنة
+// lib/services/periodic_notification_worker.dart - الحل النهائي
 // ═══════════════════════════════════════════════════════════════
 
 import 'dart:convert';
@@ -11,6 +11,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:workmanager/workmanager.dart';
 
 const String periodicAzkarTaskName = "periodicAzkarTask";
+const String rescheduleTaskName = "rescheduleTask";
 
 // ═══════════════════════════════════════════════════════════════
 // نقطة الدخول للـ Background Tasks
@@ -29,8 +30,8 @@ void callbackDispatcher() {
         return Future.value(true);
       }
 
-      // التحقق من عدد الإشعارات المجدولة
-      await _checkAndRescheduleIfNeeded(prefs);
+      // إعادة جدولة الإشعارات
+      await _rescheduleNotifications(prefs);
 
       debugPrint("✅ Worker: اكتمل التنفيذ");
       return Future.value(true);
@@ -42,20 +43,24 @@ void callbackDispatcher() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// التحقق وإعادة الجدولة عند الحاجة
+// إعادة جدولة الإشعارات
 // ═══════════════════════════════════════════════════════════════
-Future<void> _checkAndRescheduleIfNeeded(SharedPreferences prefs) async {
+Future<void> _rescheduleNotifications(SharedPreferences prefs) async {
   try {
     final notifications = FlutterLocalNotificationsPlugin();
-    final pending = await notifications.pendingNotificationRequests();
+    await notifications.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/launcher_icon'),
+      ),
+    );
 
-    // عدد الإشعارات الدورية
+    final pending = await notifications.pendingNotificationRequests();
     final periodicCount = pending.where((n) => n.id >= 10000).length;
 
     debugPrint("📊 إشعارات مجدولة: $periodicCount");
 
-    // إذا كانت أقل من 20، أعد الجدولة
-    if (periodicCount < 20) {
+    // إذا كانت أقل من 30، أعد الجدولة
+    if (periodicCount < 30) {
       debugPrint("🔄 إعادة جدولة الإشعارات...");
 
       final intervalMinutes = prefs.getInt('periodic_interval') ?? 30;
@@ -78,14 +83,14 @@ Future<void> _checkAndRescheduleIfNeeded(SharedPreferences prefs) async {
 
         await _scheduleNextBatch(
           prefs,
+          notifications,
           selectedAzkar,
           intervalMinutes,
-          pending.length,
         );
       }
     }
   } catch (e) {
-    debugPrint("❌ خطأ في التحقق: $e");
+    debugPrint("❌ خطأ في إعادة الجدولة: $e");
   }
 }
 
@@ -94,41 +99,38 @@ Future<void> _checkAndRescheduleIfNeeded(SharedPreferences prefs) async {
 // ═══════════════════════════════════════════════════════════════
 Future<void> _scheduleNextBatch(
   SharedPreferences prefs,
+  FlutterLocalNotificationsPlugin notifications,
   List<Map<String, String>> azkarList,
   int intervalMinutes,
-  int currentScheduled,
 ) async {
   try {
-    final notifications = FlutterLocalNotificationsPlugin();
-    await notifications.initialize(
-      const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/launcher_icon'),
-      ),
-    );
+    // الحصول على آخر index
+    int currentIndex = prefs.getInt('current_index') ?? 0;
+    int baseId = prefs.getInt('base_notification_id') ?? 10000;
 
     final now = tz.TZDateTime.now(tz.local);
-    int currentIndex = prefs.getInt('current_index') ?? 0;
     int scheduled = 0;
 
-    // جدولة 50 إشعار إضافي
-    for (int i = 0; i < 50; i++) {
-      final azkarIndex = currentIndex % azkarList.length;
+    // جدولة 100 إشعار
+    for (int i = 0; i < 100; i++) {
+      final azkarIndex = (currentIndex + i) % azkarList.length;
       final zekr = azkarList[azkarIndex];
 
-      // استخراج رقم الصوت
       int zekrNumber = azkarIndex + 1;
       final match = RegExp(r'zekr_(\d+)').firstMatch(zekr['sound']!);
       if (match != null) {
         zekrNumber = int.parse(match.group(1)!);
       }
 
-      final notificationId = 10000 + currentScheduled + i;
+      // ID فريد لكل إشعار
+      final notificationId = baseId + i;
+
       // حساب وقت الإشعار
-      final offsetMinutes = (currentScheduled + i) * intervalMinutes;
+      final offsetMinutes = i * intervalMinutes;
       final scheduledTime = now.add(Duration(minutes: offsetMinutes));
 
       // التأكد أن التاريخ في المستقبل
-      if (scheduledTime.isBefore(now.add(const Duration(seconds: 30)))) {
+      if (scheduledTime.isBefore(now.add(const Duration(seconds: 10)))) {
         continue;
       }
 
@@ -148,19 +150,24 @@ Future<void> _scheduleNextBatch(
               sound: RawResourceAndroidNotificationSound(zekr['sound']!),
               enableVibration: false,
               icon: '@mipmap/launcher_icon',
+              // 🔥 إضافة هذه الخصائص للاستمرارية
+              autoCancel: false,
+              ongoing: false,
             ),
           ),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         );
 
         scheduled++;
-        currentIndex++;
       } catch (e) {
-        debugPrint("⚠️ خطأ في جدولة إشعار: $e");
+        debugPrint("⚠️ خطأ في جدولة إشعار $i: $e");
       }
     }
 
-    await prefs.setInt('current_index', currentIndex);
+    // تحديث الـ index والـ base ID
+    await prefs.setInt('current_index', currentIndex + 100);
+    await prefs.setInt('base_notification_id', baseId + 100);
+
     debugPrint("✅ تم جدولة $scheduled إشعار جديد");
   } catch (e) {
     debugPrint("❌ خطأ في الجدولة: $e");
@@ -253,7 +260,7 @@ List<Map<String, String>> _getAzkarData() {
 class PeriodicAzkarWorker {
   /// تهيئة WorkManager
   static Future<void> initialize() async {
-    await Workmanager().initialize(callbackDispatcher);
+    await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
     debugPrint("✅ تم تهيئة WorkManager");
   }
 
@@ -271,42 +278,40 @@ class PeriodicAzkarWorker {
       // 1️⃣ إلغاء كل شيء قديم
       await Workmanager().cancelAll();
       final notifications = FlutterLocalNotificationsPlugin();
-      final pending = await notifications.pendingNotificationRequests();
+      await notifications.cancelAll();
 
-      final periodicIds = pending
-          .where((n) => n.id >= 10000)
-          .map((n) => n.id)
-          .toList();
-      for (final id in periodicIds) {
-        await notifications.cancel(id);
-      }
-      debugPrint("🗑️  تم إلغاء ${periodicIds.length} إشعار قديم");
+      debugPrint("🗑️  تم مسح جميع الإشعارات القديمة");
 
-      // 2️⃣ جدولة أول 100 إشعار
+      // 2️⃣ إعادة تعيين الـ counters
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('current_index', 0);
+      await prefs.setInt('base_notification_id', 10000);
+
+      // 3️⃣ جدولة أول 100 إشعار
       await _scheduleInitialNotifications(azkarList, intervalMinutes);
 
-      // 3️⃣ تشغيل Worker للمراقبة والتجديد التلقائي
+      // 4️⃣ تشغيل Worker للمراقبة المستمرة
+      // 🔥 Worker يشتغل كل 15 دقيقة للتأكد من استمرار الإشعارات
       await Workmanager().registerPeriodicTask(
-        periodicAzkarTaskName,
-        periodicAzkarTaskName,
+        rescheduleTaskName,
+        rescheduleTaskName,
         frequency: const Duration(minutes: 15),
+        initialDelay: const Duration(minutes: 10),
         constraints: Constraints(
           networkType: NetworkType.notRequired,
           requiresBatteryNotLow: false,
           requiresCharging: false,
           requiresDeviceIdle: false,
         ),
-        existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
+        existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
       );
 
-      // 4️⃣ حفظ الحالة
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('current_index', 0);
+      // 5️⃣ حفظ الحالة
       await prefs.setBool('periodic_enabled', true);
 
       debugPrint("✅ تم التشغيل بنجاح!");
       debugPrint("📱 أول إشعار بعد $intervalMinutes دقيقة");
-      debugPrint("🔄 Worker يفحص كل 15 دقيقة");
+      debugPrint("🔄 Worker يفحص كل 15 دقيقة لضمان الاستمرارية");
       debugPrint("═══════════════════════════════════════");
     } catch (e) {
       debugPrint("❌ خطأ في التشغيل: $e");
@@ -329,12 +334,11 @@ class PeriodicAzkarWorker {
     final now = tz.TZDateTime.now(tz.local);
     int scheduled = 0;
 
-    // جدولة 100 إشعار (تكفي لعدة أيام)
+    // جدولة 100 إشعار (تكفي لعدة أيام حسب الفاصل الزمني)
     for (int i = 0; i < 100; i++) {
       final azkarIndex = i % azkarList.length;
       final zekr = azkarList[azkarIndex];
 
-      // استخراج رقم الصوت
       int zekrNumber = azkarIndex + 1;
       final match = RegExp(r'zekr_(\d+)').firstMatch(zekr['sound']!);
       if (match != null) {
@@ -343,8 +347,8 @@ class PeriodicAzkarWorker {
 
       final notificationId = 10000 + i;
 
-      // حساب وقت الإشعار (أول ذكر بعد دقيقة واحدة)
-      final offsetMinutes = (i + 1) * intervalMinutes;
+      // حساب وقت الإشعار
+      final offsetMinutes = i * intervalMinutes;
       final scheduledTime = now.add(Duration(minutes: offsetMinutes));
 
       try {
@@ -363,6 +367,7 @@ class PeriodicAzkarWorker {
               sound: RawResourceAndroidNotificationSound(zekr['sound']!),
               enableVibration: false,
               icon: '@mipmap/launcher_icon',
+              autoCancel: false,
             ),
           ),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -370,8 +375,7 @@ class PeriodicAzkarWorker {
 
         scheduled++;
 
-        // طباعة أول 5 إشعارات فقط
-        if (i < 5) {
+        if (i < 3) {
           debugPrint(
             "   ✅ إشعار ${i + 1}: ${scheduledTime.day}/${scheduledTime.month} "
             "${scheduledTime.hour}:${scheduledTime.minute.toString().padLeft(2, '0')}",
@@ -393,25 +397,15 @@ class PeriodicAzkarWorker {
       // إيقاف Worker
       await Workmanager().cancelAll();
 
-      // إلغاء جميع الإشعارات الدورية
+      // إلغاء جميع الإشعارات
       final notifications = FlutterLocalNotificationsPlugin();
-      final pending = await notifications.pendingNotificationRequests();
+      await notifications.cancelAll();
 
-      final periodicIds = pending
-          .where((n) => n.id >= 10000)
-          .map((n) => n.id)
-          .toList();
-      for (final id in periodicIds) {
-        await notifications.cancel(id);
-      }
-
-      // تحديث الحالة (الحفاظ على الإعدادات)
+      // تحديث الحالة
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('periodic_enabled', false);
-      // لا نحذف: periodic_selected, periodic_interval
 
-      debugPrint("🛑 تم الإيقاف - ألغيت ${periodicIds.length} إشعار");
-      debugPrint("💾 الإعدادات محفوظة للتشغيل القادم");
+      debugPrint("🛑 تم الإيقاف بنجاح");
     } catch (e) {
       debugPrint("❌ خطأ في الإيقاف: $e");
     }
@@ -433,6 +427,7 @@ class PeriodicAzkarWorker {
             ? json.decode(prefs.getString('periodic_selected')!).length
             : 0,
         'scheduledNotifications': periodicCount,
+        'currentIndex': prefs.getInt('current_index') ?? 0,
       };
     } catch (e) {
       debugPrint("❌ خطأ في جلب الحالة: $e");
