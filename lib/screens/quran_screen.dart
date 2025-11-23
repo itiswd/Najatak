@@ -1,4 +1,4 @@
-// lib/screens/quran_screen.dart
+// lib/screens/quran_screen.dart - محدث
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/quran_model.dart';
 import '../services/quran_service.dart';
+import 'mushaf_page_view_screen.dart';
 import 'quran_search_screen.dart';
 import 'surah_detail_screen.dart';
 
@@ -27,7 +28,7 @@ class _QuranScreenState extends State<QuranScreen>
   bool isLoading = true;
 
   @override
-  bool get wantKeepAlive => true; // ✅ حفظ الحالة
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -40,12 +41,8 @@ class _QuranScreenState extends State<QuranScreen>
 
     setState(() => isLoading = true);
 
-    // ✅ تحميل البيانات فقط عند الحاجة
-    allSurahs ??= await Future.microtask(
-      () => QuranService.getAllSurahs(),
-    ); // 🌟 استخدام Future.microtask لضمان عدم حظر الواجهة عند تحميل جميع السور
+    allSurahs ??= await Future.microtask(() => QuranService.getAllSurahs());
 
-    // 1. استخدام compute أو فصل الـ await/setState
     final bookmarksFuture = QuranService.getBookmarks();
     final progressFuture = QuranService.getLastProgress();
     final khatmahFuture = QuranService.getKhatmahProgress();
@@ -61,7 +58,7 @@ class _QuranScreenState extends State<QuranScreen>
     if (allSurahs != null && allSurahs!.isNotEmpty) {
       percentage = await Future.microtask(
         () => (khatmah.keys.length * 100) ~/ allSurahs!.length,
-      ); // 🌟 حساب النسبة في خلفية
+      );
     }
 
     if (mounted) {
@@ -75,7 +72,6 @@ class _QuranScreenState extends State<QuranScreen>
     }
   }
 
-  // ... (باقي الكلاس)
   void _navigateToSurah(int surahNumber, {int? startAyah}) {
     Navigator.push(
       context,
@@ -88,9 +84,28 @@ class _QuranScreenState extends State<QuranScreen>
     ).then((_) => _loadData());
   }
 
+  void _navigateToMushafView() {
+    int initialPage = 1;
+
+    // إذا كان هناك تقدم قراءة، انتقل للصفحة الأخيرة المقروءة
+    if (lastProgress != null) {
+      initialPage = QuranService.getPageNumber(
+        lastProgress!.surahNumber,
+        lastProgress!.ayahNumber,
+      );
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MushafPageViewScreen(initialPage: initialPage),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    super.build(context); // ✅ مطلوب لـ AutomaticKeepAliveClientMixin
+    super.build(context);
 
     return DefaultTabController(
       length: 3,
@@ -120,8 +135,14 @@ class _QuranScreenState extends State<QuranScreen>
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
+        // زر التبديل إلى وضع المصحف
         IconButton(
-          icon: const Icon(Icons.manage_search, size: 32),
+          icon: const Icon(Icons.menu_book, size: 28),
+          onPressed: _navigateToMushafView,
+          tooltip: 'عرض المصحف',
+        ),
+        IconButton(
+          icon: const Icon(Icons.search, size: 32),
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const QuranSearchScreen()),
@@ -144,7 +165,7 @@ class _QuranScreenState extends State<QuranScreen>
         labelColor: Colors.white,
         unselectedLabelColor: Colors.white60,
         tabs: [
-          Tab(icon: Icon(Icons.menu_book), text: 'السور'),
+          Tab(icon: Icon(Icons.list), text: 'السور'),
           Tab(icon: Icon(Icons.bookmark), text: 'الإشارات'),
           Tab(icon: Icon(Icons.check_circle), text: 'الختمة'),
         ],
@@ -156,6 +177,7 @@ class _QuranScreenState extends State<QuranScreen>
     return Column(
       children: [
         if (lastProgress != null) _buildContinueReadingCard(),
+
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -176,8 +198,8 @@ class _QuranScreenState extends State<QuranScreen>
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
           colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
         ),
         borderRadius: BorderRadius.only(
@@ -185,71 +207,64 @@ class _QuranScreenState extends State<QuranScreen>
           topRight: Radius.circular(20),
         ),
       ),
-      child: Column(
-        children: [
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => _navigateToSurah(
-                lastProgress!.surahNumber,
-                startAyah: lastProgress!.ayahNumber,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(51),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: const Icon(
-                        Icons.play_circle_filled,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'تابع القراءة',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            surah.name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'الآية ${lastProgress!.ayahNumber}',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.arrow_forward_ios, color: Colors.white),
-                  ],
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _navigateToSurah(
+            lastProgress!.surahNumber,
+            startAyah: lastProgress!.ayahNumber,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(51),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: const Icon(
+                    Icons.play_circle_filled,
+                    color: Colors.white,
+                    size: 32,
+                  ),
                 ),
-              ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'تابع القراءة',
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        surah.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'الآية ${lastProgress!.ayahNumber}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -311,7 +326,7 @@ class _QuranScreenState extends State<QuranScreen>
                     ],
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
