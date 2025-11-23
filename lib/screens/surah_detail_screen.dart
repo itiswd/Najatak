@@ -192,10 +192,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
               children: [
                 Text(
                   'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontFamily: 'AmiriQuran',
-                  ),
+                  style: TextStyle(fontSize: fontSize, fontFamily: 'KFGQPC'),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
@@ -612,7 +609,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 style: TextStyle(
                   fontSize: fontSize,
                   height: 2.1,
-                  fontFamily: 'AmiriQuran',
+                  fontFamily: 'KFGQPC',
                   color: textColor,
                   fontWeight: FontWeight.w700,
                 ),

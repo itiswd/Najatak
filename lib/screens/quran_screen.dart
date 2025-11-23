@@ -472,7 +472,7 @@ class _QuranScreenState extends State<QuranScreen>
                   style: const TextStyle(
                     fontSize: 18,
                     height: 2,
-                    fontFamily: 'AmiriQuran',
+                    fontFamily: 'KFGQPC',
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,

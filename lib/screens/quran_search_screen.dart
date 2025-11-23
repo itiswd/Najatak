@@ -319,7 +319,7 @@ class _QuranSearchScreenState extends State<QuranSearchScreen> {
             style: const TextStyle(
               fontSize: 18,
               height: 2,
-              fontFamily: 'AmiriQuran',
+              fontFamily: 'KFGQPC',
               color: Color(0xFF303030),
             ),
           ),
@@ -331,7 +331,7 @@ class _QuranSearchScreenState extends State<QuranSearchScreen> {
             style: const TextStyle(
               fontSize: 18,
               height: 2,
-              fontFamily: 'AmiriQuran',
+              fontFamily: 'KFGQPC',
               color: Color(0xFF1B5E20),
               fontWeight: FontWeight.bold,
               backgroundColor: Color(0xFFE8F5E9),
