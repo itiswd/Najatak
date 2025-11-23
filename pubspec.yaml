@@ -115,5 +115,8 @@ flutter:
     - family: AmiriQuran 
       fonts:
         - asset: assets/fonts/AmiriQuran-Regular.ttf
+    - family: Amiri 
+      fonts:
+        - asset: assets/fonts/Amiri-Regular.ttf
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
