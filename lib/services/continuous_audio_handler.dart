@@ -2,6 +2,7 @@
 
 import 'package:flutter/widgets.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:quran/quran.dart' as quran;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// معالج الصوت المستمر
@@ -10,10 +11,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ContinuousAudioHandler {
   static final ContinuousAudioHandler _instance =
       ContinuousAudioHandler._internal();
+
   late AudioPlayer _audioPlayer;
   int _currentSurah = 0;
   int _currentAyah = 0;
   bool _isPlayingContinuously = false;
+  String _currentReciter = 'Alafasy_128kbps'; // ✅ حفظ القارئ الحالي
 
   factory ContinuousAudioHandler() {
     return _instance;
@@ -39,7 +42,6 @@ class ContinuousAudioHandler {
   /// تهيئة جلسة الصوت للعمل في الخلفية
   Future<void> _setupAudioSession() async {
     try {
-      // ✅ السماح بالتشغيل حتى مع قفل الشاشة
       _audioPlayer.playerStateStream.listen((state) {
         if (state.processingState == ProcessingState.completed) {
           _onAyahCompleted();
@@ -60,6 +62,8 @@ class ContinuousAudioHandler {
       _currentAyah = prefs.getInt('quran_playback_ayah') ?? 0;
       _isPlayingContinuously =
           prefs.getBool('is_playing_continuously') ?? false;
+      _currentReciter =
+          prefs.getString('selected_reciter') ?? 'Alafasy_128kbps';
 
       if (_isPlayingContinuously && _currentSurah > 0) {
         debugPrint(
@@ -69,6 +73,12 @@ class ContinuousAudioHandler {
     } catch (e) {
       debugPrint('❌ خطأ في تحميل حالة التشغيل: $e');
     }
+  }
+
+  /// ✅ تحديث القارئ أثناء التشغيل
+  void updateReciter(String newReciter) {
+    _currentReciter = newReciter;
+    debugPrint('🎙️ تم تغيير القارئ إلى: $newReciter');
   }
 
   /// بدء القراءة المستمرة من سورة معينة
@@ -84,12 +94,13 @@ class ContinuousAudioHandler {
       _currentSurah = surahNumber;
       _currentAyah = startAyah;
       _isPlayingContinuously = true;
+      _currentReciter = reciter; // ✅ حفظ القارئ
 
       // حفظ الحالة
       await _savePlaybackState();
 
       // بدء التشغيل
-      return await _playNextAyah(surahNumber, startAyah, reciter);
+      return await _playNextAyah(surahNumber, startAyah);
     } catch (e) {
       debugPrint('❌ خطأ في بدء القراءة المستمرة: $e');
       return false;
@@ -97,15 +108,12 @@ class ContinuousAudioHandler {
   }
 
   /// تشغيل الآية التالية تلقائياً
-  Future<bool> _playNextAyah(
-    int surahNumber,
-    int ayahNumber,
-    String reciter,
-  ) async {
+  Future<bool> _playNextAyah(int surahNumber, int ayahNumber) async {
     try {
-      final url = _buildAudioUrl(surahNumber, ayahNumber, reciter);
+      // ✅ استخدام القارئ المحفوظ
+      final url = _buildAudioUrl(surahNumber, ayahNumber, _currentReciter);
 
-      debugPrint('🎵 تشغيل: $surahNumber:$ayahNumber');
+      debugPrint('🎵 تشغيل: $surahNumber:$ayahNumber بصوت $_currentReciter');
 
       await _audioPlayer.setUrl(url);
       await _audioPlayer.play();
@@ -126,20 +134,24 @@ class ContinuousAudioHandler {
   /// معالج انتهاء الآية
   Future<void> _onAyahCompleted() async {
     try {
+      if (!_isPlayingContinuously) return;
+
       // 🔄 الانتقال إلى الآية التالية تلقائياً
       int nextAyah = _currentAyah + 1;
+      int totalAyahs = quran.getVerseCount(_currentSurah);
 
-      if (nextAyah <= 286) {
-        // مثال: السورة لها 286 آية
-        // يجب جلب عدد الآيات من قاعدة البيانات
-        await _playNextAyah(_currentSurah, nextAyah, 'Alafasy_128kbps');
+      if (nextAyah <= totalAyahs) {
+        // الاستمرار في نفس السورة
+        await _playNextAyah(_currentSurah, nextAyah);
       } else {
         // الانتقال إلى السورة التالية
         int nextSurah = _currentSurah + 1;
         if (nextSurah <= 114) {
-          await _playNextAyah(nextSurah, 1, 'Alafasy_128kbps');
+          debugPrint('📖 الانتقال للسورة التالية: $nextSurah');
+          await _playNextAyah(nextSurah, 1);
         } else {
-          // انتهت القراءة
+          // انتهت القراءة - ختم القرآن!
+          debugPrint('🎉 تم ختم القرآن الكريم!');
           await stopContinuousReading();
         }
       }
@@ -151,7 +163,7 @@ class ContinuousAudioHandler {
   /// إيقاف القراءة المستمرة
   Future<void> stopContinuousReading() async {
     try {
-      await _audioPlayer.pause();
+      await _audioPlayer.stop();
       _isPlayingContinuously = false;
       await _savePlaybackState();
       debugPrint('⏹️ تم إيقاف القراءة المستمرة');
@@ -179,6 +191,7 @@ class ContinuousAudioHandler {
       await prefs.setInt('quran_playback_surah', _currentSurah);
       await prefs.setInt('quran_playback_ayah', _currentAyah);
       await prefs.setBool('is_playing_continuously', _isPlayingContinuously);
+      await prefs.setString('selected_reciter', _currentReciter);
     } catch (e) {
       debugPrint('❌ خطأ في حفظ حالة التشغيل: $e');
     }
@@ -196,6 +209,7 @@ class ContinuousAudioHandler {
   bool get isContinuousReading => _isPlayingContinuously;
   int get currentSurah => _currentSurah;
   int get currentAyah => _currentAyah;
+  String get currentReciter => _currentReciter;
 
   /// الحصول على مجرى تدفق حالة المشغل
   Stream<PlayerState> get playerStateStream => _audioPlayer.playerStateStream;
