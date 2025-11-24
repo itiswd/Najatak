@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../models/azkar_model.dart';
+import '../../../models/azkar_model.dart';
 import 'azkar_item_widget.dart'; // استيراد ويدجت العنصر
 
 typedef AzkarItemTapCallback =

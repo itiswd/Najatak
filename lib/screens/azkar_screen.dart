@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:najatak/widgets/azkar_category_widget.dart';
-import 'package:najatak/widgets/azkar_details_sheet.dart';
+import 'package:najatak/widgets/azkar/azkar_category_widget.dart';
+import 'package:najatak/widgets/azkar/azkar_details_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/azkar_model.dart';

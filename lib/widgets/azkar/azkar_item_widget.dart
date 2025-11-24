@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../models/azkar_model.dart';
+import '../../../models/azkar_model.dart';
 
 class AzkarItemWidget extends StatelessWidget {
   final Azkar azkar;

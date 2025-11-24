@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:najatak/widgets/azkar_handle_widget.dart';
-import 'package:najatak/widgets/azkar_tap_button.dart';
+import 'package:najatak/widgets/azkar/azkar_handle_widget.dart';
+import 'package:najatak/widgets/azkar/azkar_tap_button.dart';
 
-import '../models/azkar_model.dart';
+import '../../models/azkar_model.dart';
 
 class AzkarDetailsSheet extends StatefulWidget {
   final Azkar azkar;
