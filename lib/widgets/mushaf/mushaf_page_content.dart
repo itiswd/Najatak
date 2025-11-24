@@ -51,19 +51,19 @@ class MushafPageContent extends StatelessWidget {
     final verses = getPageVerses(pageNumber);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFDF7),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: const Color(0xFF1B5E20).withAlpha(51),
-          width: 1,
+          color: const Color(0xFFD4AF37).withOpacity(0.3),
+          width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(13),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -71,37 +71,11 @@ class MushafPageContent extends StatelessWidget {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
               child: _buildPageContent(verses),
             ),
           ),
-          if (showPageNumber)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFDF7),
-                border: Border(
-                  top: BorderSide(
-                    color: const Color(0xFF1B5E20).withAlpha(51),
-                    width: 1,
-                  ),
-                ),
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(12),
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  _toArabicNumbers(pageNumber),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1B5E20),
-                    fontFamily: 'Amiri',
-                  ),
-                ),
-              ),
-            ),
+          _buildPageNumber(),
         ],
       ),
     );
@@ -118,8 +92,10 @@ class MushafPageContent extends StatelessWidget {
     }
 
     String currentSurah = '';
+    int currentSurahNumber = 0;
     List<InlineSpan> textSpans = [];
     List<Widget> widgets = [];
+    bool isFirstVerseOfNewSurah = false;
 
     for (int i = 0; i < verses.length; i++) {
       final verse = verses[i];
@@ -127,24 +103,37 @@ class MushafPageContent extends StatelessWidget {
       final verseNumber = verse['verse'] as int;
       final surahNumber = verse['surah'] as int;
 
+      // 🔥 اكتشاف بداية سورة جديدة
       if (currentSurah != surahName) {
+        // حفظ النص السابق
         if (textSpans.isNotEmpty) {
           widgets.add(_buildContinuousText(textSpans));
           textSpans = [];
         }
 
         currentSurah = surahName;
-        widgets.add(_buildSurahHeader(surahName));
+        currentSurahNumber = surahNumber;
+        isFirstVerseOfNewSurah = true;
 
-        // إضافة البسملة - تصحيح للفاتحة
+        // ✅ عرض اسم السورة فقط في بداية السورة (الآية الأولى)
+        if (verseNumber == 1) {
+          widgets.add(_buildSurahHeader(surahName));
+        }
+
+        // ✅ البسملة: تُعرض فقط للسور غير الفاتحة والتوبة
+        // وفقط إذا كانت الآية الأولى من السورة
         if (verseNumber == 1 && surahNumber != 1 && surahNumber != 9) {
           widgets.add(_buildBasmala());
         }
+      } else {
+        isFirstVerseOfNewSurah = false;
       }
 
+      // ✅ إضافة الآية
       textSpans.addAll(_buildVerseSpans(verse));
     }
 
+    // حفظ آخر نص
     if (textSpans.isNotEmpty) {
       widgets.add(_buildContinuousText(textSpans));
     }
@@ -157,30 +146,35 @@ class MushafPageContent extends StatelessWidget {
 
   Widget _buildSurahHeader(String surahName) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 12),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF7),
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFD4AF37).withOpacity(0.15),
+            const Color(0xFFD4AF37).withOpacity(0.05),
+          ],
+        ),
         border: Border(
           top: BorderSide(
-            color: const Color(0xFF1B5E20).withAlpha(51),
-            width: 1,
+            color: const Color(0xFFD4AF37).withOpacity(0.4),
+            width: 1.5,
           ),
           bottom: BorderSide(
-            color: const Color(0xFF1B5E20).withAlpha(51),
-            width: 1,
+            color: const Color(0xFFD4AF37).withOpacity(0.4),
+            width: 1.5,
           ),
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         'سُورَةُ $surahName',
         textAlign: TextAlign.center,
         style: const TextStyle(
-          fontSize: 16,
+          fontSize: 18,
           fontFamily: 'Amiri',
           color: Color(0xFF1B5E20),
           fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -188,8 +182,12 @@ class MushafPageContent extends StatelessWidget {
 
   Widget _buildBasmala() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 12),
-      child: Image.asset('assets/images/البسملة.png'),
+      padding: const EdgeInsets.fromLTRB(32, 12, 32, 4),
+      child: Image.asset(
+        'assets/images/البسملة.png',
+        height: 48,
+        fit: BoxFit.contain,
+      ),
     );
   }
 
@@ -213,8 +211,9 @@ class MushafPageContent extends StatelessWidget {
               ? const Color(0xFF1B5E20)
               : const Color(0xFF2C1810),
           fontWeight: FontWeight.bold,
+          height: 2.0,
           backgroundColor: isCurrentlyPlaying
-              ? const Color(0xFF1B5E20).withAlpha(77)
+              ? const Color(0xFF1B5E20).withOpacity(0.15)
               : Colors.transparent,
         ),
       ),
@@ -227,25 +226,28 @@ class MushafPageContent extends StatelessWidget {
 
   Widget _buildVerseNumberCircle(int verseNumber, [bool isPlaying = false]) {
     return Padding(
-      padding: const EdgeInsets.all(4.0),
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
       child: SizedBox(
-        width: 38,
-        height: 38,
+        width: fontSize + 10,
+        height: fontSize + 10,
         child: Stack(
+          alignment: Alignment.center,
           children: [
-            Image.asset("assets/images/aya_icon.png"),
-            Center(
-              child: Text(
-                _toArabicNumbers(verseNumber),
-                style: TextStyle(
-                  fontSize: verseNumber > 99 ? 12 : 14,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Amiri',
-                  height: 1.0,
-                ),
-                textAlign: TextAlign.center,
+            Image.asset(
+              "assets/images/aya_icon.png",
+              width: fontSize + 10,
+              height: fontSize + 10,
+              fit: BoxFit.contain,
+            ),
+            Text(
+              _toArabicNumbers(verseNumber),
+              style: TextStyle(
+                fontSize: verseNumber > 99 ? fontSize * 0.4 : fontSize * 0.5,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Amiri',
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -255,11 +257,44 @@ class MushafPageContent extends StatelessWidget {
 
   Widget _buildContinuousText(List<InlineSpan> spans) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.only(bottom: 12),
       child: RichText(
         textAlign: TextAlign.justify,
         textDirection: TextDirection.rtl,
         text: TextSpan(children: spans),
+      ),
+    );
+  }
+
+  Widget _buildPageNumber() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFD4AF37).withOpacity(0.1),
+            const Color(0xFFD4AF37).withOpacity(0.05),
+          ],
+        ),
+        border: Border(
+          top: BorderSide(
+            color: const Color(0xFFD4AF37).withOpacity(0.3),
+            width: 1.5,
+          ),
+        ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+      ),
+      child: Center(
+        child: Text(
+          _toArabicNumbers(pageNumber),
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1B5E20),
+            fontFamily: 'Amiri',
+            letterSpacing: 1,
+          ),
+        ),
       ),
     );
   }
