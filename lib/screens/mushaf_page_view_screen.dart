@@ -727,79 +727,6 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
     );
   }
 
-  Widget _buildPlaybackBar() {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF8B6914), Color(0xFFD4AF37)],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(51),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(51),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.music_note,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'القراءة المستمرة',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    if (playingSurah != null && playingAyah != null)
-                      Text(
-                        'سورة ${quran.getSurahNameArabic(playingSurah!)} - آية $playingAyah',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              Text(
-                reciters[selectedReciter] ?? 'القارئ',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       title: Text(
@@ -897,62 +824,6 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
     );
   }
 
-  Widget _buildDecorativeHeader(int juzNumber) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFFD4AF37).withAlpha(51),
-            const Color(0xFFF5EFE0).withAlpha(26),
-          ],
-        ),
-        border: Border(
-          bottom: BorderSide(
-            color: const Color(0xFFD4AF37).withAlpha(77),
-            width: 1,
-          ),
-        ),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildOrnament(),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'الجُزْءُ ${_toArabicNumbers(juzNumber)}',
-              style: const TextStyle(
-                color: Color(0xFF8B6914),
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Amiri',
-              ),
-            ),
-          ),
-          _buildOrnament(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOrnament() {
-    return Container(
-      width: 40,
-      height: 2,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.transparent,
-            const Color(0xFFD4AF37).withAlpha(128),
-            Colors.transparent,
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildPageContent(List<Map<String, dynamic>> verses, int pageNumber) {
     if (verses.isEmpty) {
       return const Center(
@@ -1026,22 +897,6 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
           fontFamily: 'Amiri',
           color: Color(0xFF8B6914),
           fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSmallOrnament() {
-    return Container(
-      width: 30,
-      height: 1.5,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.transparent,
-            const Color(0xFFD4AF37).withAlpha(128),
-            Colors.transparent,
-          ],
         ),
       ),
     );
@@ -1134,49 +989,6 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
         textAlign: TextAlign.justify,
         textDirection: TextDirection.rtl,
         text: TextSpan(children: spans),
-      ),
-    );
-  }
-
-  Widget _buildDecorativeFooter(int pageNumber) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFFF5EFE0).withAlpha(26),
-            const Color(0xFFD4AF37).withAlpha(51),
-          ],
-        ),
-        border: Border(
-          top: BorderSide(
-            color: const Color(0xFFD4AF37).withAlpha(77),
-            width: 1,
-          ),
-        ),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-      ),
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: const Color(0xFFD4AF37).withAlpha(128),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            _toArabicNumbers(pageNumber),
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF8B6914),
-              fontFamily: 'Amiri',
-            ),
-          ),
-        ),
       ),
     );
   }
