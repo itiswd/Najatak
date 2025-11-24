@@ -34,14 +34,15 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
   int? playingSurah;
   int? playingAyah;
 
+  // ✅ تصحيح أسماء القراء لتطابق السيرفر
   final Map<String, String> reciters = {
     'Alafasy_128kbps': 'مشاري العفاسي',
     'Husary_128kbps': 'محمود الحصري',
     'Abdul_Basit_Murattal_192kbps': 'عبد الباسط',
     'Abdurrahmaan_As-Sudais_192kbps': 'السديس',
-    'Sa3d_Al-Ghaamidi_128kbps': 'سعد الغامدي',
-    'Ahmed_ibn_Ali_al-Ajamy_128kbps': 'أحمد العجمي',
-    'Maher_AlMuaiqly_128kbps': 'ماهر المعيقلي',
+    'Ghamadi_40kbps': 'سعد الغامدي', // ✅ مصحح
+    'Ajamy_128kbps_copy': 'أحمد العجمي', // ✅ مصحح
+    'MaherAlMuaiqly128kbps': 'ماهر المعيقلي', // ✅ مصحح
   };
 
   String selectedReciter = 'Alafasy_128kbps';

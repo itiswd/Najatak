@@ -1,3 +1,5 @@
+// ignore_for_file: unused_local_variable
+
 import 'package:flutter/material.dart';
 import 'package:quran/quran.dart' as quran;
 
@@ -49,19 +51,25 @@ class MushafPageContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final verses = getPageVerses(pageNumber);
+    final isRightPage = pageNumber % 2 == 0; // ✅ صفحة يمين أم شمال
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFDF7),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: const Color(0xFFD4AF37).withOpacity(0.3),
-          width: 2,
+        // ✅ خط واحد فقط على الجانب (يمين أو شمال)
+        border: Border(
+          left: isRightPage
+              ? BorderSide(color: Color(0xFF1B5E20), width: 2)
+              : BorderSide.none,
+          right: isRightPage
+              ? BorderSide.none
+              : BorderSide(color: Color(0xFF1B5E20), width: 2),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withAlpha(20),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
@@ -71,7 +79,7 @@ class MushafPageContent extends StatelessWidget {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
               child: _buildPageContent(verses),
             ),
           ),
@@ -150,17 +158,17 @@ class MushafPageContent extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFFD4AF37).withOpacity(0.15),
-            const Color(0xFFD4AF37).withOpacity(0.05),
+            const Color(0xFFD4AF37).withAlpha(38),
+            const Color(0xFFD4AF37).withAlpha(13),
           ],
         ),
         border: Border(
           top: BorderSide(
-            color: const Color(0xFFD4AF37).withOpacity(0.4),
+            color: const Color(0xFFD4AF37).withAlpha(102),
             width: 1.5,
           ),
           bottom: BorderSide(
-            color: const Color(0xFFD4AF37).withOpacity(0.4),
+            color: const Color(0xFFD4AF37).withAlpha(102),
             width: 1.5,
           ),
         ),
@@ -213,7 +221,7 @@ class MushafPageContent extends StatelessWidget {
           fontWeight: FontWeight.bold,
           height: 2.0,
           backgroundColor: isCurrentlyPlaying
-              ? const Color(0xFF1B5E20).withOpacity(0.15)
+              ? const Color(0xFF1B5E20).withAlpha(38)
               : Colors.transparent,
         ),
       ),
@@ -272,13 +280,13 @@ class MushafPageContent extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFFD4AF37).withOpacity(0.1),
-            const Color(0xFFD4AF37).withOpacity(0.05),
+            const Color(0xFFD4AF37).withAlpha(25),
+            const Color(0xFFD4AF37).withAlpha(13),
           ],
         ),
         border: Border(
           top: BorderSide(
-            color: const Color(0xFFD4AF37).withOpacity(0.3),
+            color: const Color(0xFFD4AF37).withAlpha(77),
             width: 1.5,
           ),
         ),
