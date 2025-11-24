@@ -380,99 +380,38 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFE0),
       appBar: _showUI ? _buildAppBar() : null,
-      body: GestureDetector(
-        onTap: () {
-          setState(() {
-            _showUI = !_showUI;
-          });
-        },
-        child: Stack(
-          children: [
-            PageView.builder(
-              controller: _pageController,
-              itemCount: 604,
-              onPageChanged: (index) {
-                setState(() => currentPage = index + 1);
-              },
-              itemBuilder: (context, index) {
-                return _buildMushafPage(index + 1);
-              },
-            ),
+      body: SafeArea(
+        child: GestureDetector(
+          onTap: () {
+            setState(() {
+              _showUI = !_showUI;
+            });
+          },
+          child: Stack(
+            children: [
+              PageView.builder(
+                controller: _pageController,
+                itemCount: 604,
+                onPageChanged: (index) {
+                  setState(() => currentPage = index + 1);
+                },
+                itemBuilder: (context, index) {
+                  return _buildMushafPage(index + 1);
+                },
+              ),
 
-            // زر التشغيل/الإيقاف العائم (يظهر ويختفي)
-            if (_showUI)
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                bottom: 85,
-                right: 16,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isPlaying
-                          ? [const Color(0xFFD4AF37), const Color(0xFF8B6914)]
-                          : [const Color(0xFF8B6914), const Color(0xFFD4AF37)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF8B6914).withAlpha(102),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: _togglePlayback,
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isPlaying
-                                  ? Icons.pause_rounded
-                                  : Icons.play_arrow_rounded,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              isPlaying ? 'إيقاف' : 'تشغيل',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                fontFamily: 'Amiri',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+              // مؤشر الصفحات في الأسفل (يظهر ويختفي)
+              if (_showUI)
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  bottom: 16,
+                  left: 16,
+                  right: 16,
+                  child: _buildPageIndicator(),
                 ),
-              ),
-
-            // مؤشر الصفحات في الأسفل (يظهر ويختفي)
-            if (_showUI)
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                bottom: 16,
-                left: 16,
-                right: 16,
-                child: _buildPageIndicator(),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -580,7 +519,6 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
                 children: [
                   // أيقونة متحركة
                   Container(
-                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: isContinuousMode
@@ -601,12 +539,18 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
                         ),
                       ],
                     ),
-                    child: Icon(
-                      isContinuousMode
-                          ? Icons.graphic_eq_rounded
-                          : Icons.menu_book_rounded,
-                      color: Colors.white,
-                      size: 18,
+                    child: InkWell(
+                      onTap: _togglePlayback,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Icon(
+                          isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -944,8 +888,8 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
 
   Widget _buildVerseNumberCircle(int verseNumber, [bool isPlaying = false]) {
     return Container(
-      width: 22,
-      height: 22,
+      width: 28,
+      height: 28,
       margin: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
@@ -970,7 +914,7 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
         child: Text(
           _toArabicNumbers(verseNumber),
           style: TextStyle(
-            fontSize: 12,
+            fontSize: verseNumber > 99 ? 12 : 14,
             color: isPlaying ? Colors.white : const Color(0xFF8B6914),
             fontWeight: FontWeight.bold,
             fontFamily: 'Amiri',
