@@ -34,14 +34,38 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
   int? playingSurah;
   int? playingAyah;
 
-  // ✅ تصحيح أسماء القراء لتطابق السيرفر
+  // ✅ قائمة كاملة بجميع القراء المتوفرين على everyayah.com
   final Map<String, String> reciters = {
-    'Alafasy_128kbps': 'مشاري العفاسي',
-    'Husary_128kbps': 'محمود الحصري',
-    'Abdul_Basit_Murattal_192kbps': 'عبد الباسط',
-    'Abdurrahmaan_As-Sudais_192kbps': 'السديس',
-    'Ghamadi_40kbps': 'سعد الغامدي', // ✅ مصحح
-    'MaherAlMuaiqly128kbps': 'ماهر المعيقلي', // ✅ مصحح
+    // القراء الأكثر شهرة - جودة عالية
+    'Husary_128kbps': 'محمود خليل الحصري',
+    // 'Minshawi_128kbps': 'محمد صديق المنشاوي',
+    'Abdul_Basit_Murattal_192kbps': 'عبد الباسط عبد الصمد (مرتل)',
+    'mahmoud_ali_al_banna_32kbps': 'محمود علي البنا',
+    'Muhammad_Ayyoub_128kbps': 'محمد أيوب',
+    'Yasser_Ad-Dussary_128kbps': 'ياسر الدوسري',
+    'Nasser_Alqatami_128kbps': 'ناصر القطامي',
+    'Alafasy_128kbps': 'مشاري راشد العفاسي',
+    'MaherAlMuaiqly128kbps': 'ماهر المعيقلي',
+    'Saood_ash-Shuraym_64kbps': 'سعود الشريم',
+    'Ghamadi_40kbps': 'سعد الغامدي',
+    'Fares_Abbad_64kbps': 'فارس عباد',
+
+    // قراء مميزون - جودة متوسطة وعالية
+    'Muhammad_Jibreel_128kbps': 'محمد جبريل',
+    'AbdulSamad_64kbps_QuranExplorer.Com': 'عبد الباسط عبد الصمد (مجود)',
+    'Abdurrahmaan_As-Sudais_192kbps': 'عبد الرحمن السديس',
+    'Ayman_Sowaid_64kbps': 'أيمن سويد',
+    'Ahmed_ibn_Ali_al-Ajamy_128kbps_ketaballah.net': 'أحمد العجمي',
+    'Husary_Muallim_128kbps': 'محمود خليل الحصري (معلم)',
+    'Abu_Bakr_Ash-Shaatree_128kbps': 'أبو بكر الشاطري',
+
+    // قراء إضافيون
+    'Abdullah_Basfar_192kbps': 'عبد الله بصفر',
+    'Abdullaah_3awwaad_Al-Juhaynee_128kbps': 'عبد الله الجهني',
+    'Muhsin_Al_Qasim_192kbps': 'محسن القاسم',
+    'Salaah_AbdulRahman_Bukhatir_128kbps': 'صلاح بو خاطر',
+    'Sahl_Yassin_128kbps': 'سهل ياسين',
+    'aziz_alili_128kbps': 'عزيز عليلي',
   };
 
   String selectedReciter = 'Alafasy_128kbps';
@@ -107,68 +131,129 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
   }
 
   void _showReciterDialog() {
+    // تقسيم القراء إلى مجموعات
+    final popularReciters = {
+      'Husary_128kbps': 'محمود خليل الحصري',
+      // 'Minshawi_128kbps': 'محمد صديق المنشاوي',
+      'Abdul_Basit_Murattal_192kbps': 'عبد الباسط عبد الصمد (مرتل)',
+      'mahmoud_ali_al_banna_32kbps': 'محمود علي البنا',
+      'Muhammad_Ayyoub_128kbps': 'محمد أيوب',
+      'Yasser_Ad-Dussary_128kbps': 'ياسر الدوسري',
+      'Nasser_Alqatami_128kbps': 'ناصر القطامي',
+      'Alafasy_128kbps': 'مشاري راشد العفاسي',
+      'MaherAlMuaiqly128kbps': 'ماهر المعيقلي',
+      'Saood_ash-Shuraym_64kbps': 'سعود الشريم',
+      'Ghamadi_40kbps': 'سعد الغامدي',
+      'Fares_Abbad_64kbps': 'فارس عباد',
+    };
+
+    final otherReciters = Map.fromEntries(
+      reciters.entries.where((e) => !popularReciters.containsKey(e.key)),
+    );
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.person, color: Color(0xFF1B5E20)),
-            SizedBox(width: 12),
-            Text('اختر القارئ', style: TextStyle(color: Color(0xFF1B5E20))),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B5E20).withAlpha(25),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.person,
+                color: Color(0xFF1B5E20),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'اختر القارئ',
+              style: TextStyle(color: Color(0xFF1B5E20)),
+            ),
           ],
         ),
         content: SizedBox(
           width: double.maxFinite,
-          child: ListView.builder(
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: ListView(
             shrinkWrap: true,
-            itemCount: reciters.length,
-            itemBuilder: (context, index) {
-              final reciterKey = reciters.keys.elementAt(index);
-              final reciterName = reciters[reciterKey]!;
-              final isSelected = selectedReciter == reciterKey;
+            children: [
+              // القراء الأكثر شهرة
+              ...popularReciters.entries.map((entry) {
+                return _buildReciterItem(entry.key, entry.value);
+              }),
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? const Color(0xFF1B5E20).withAlpha(26)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected
-                        ? const Color(0xFF1B5E20)
-                        : Colors.grey.withAlpha(51),
-                  ),
-                ),
-                child: ListTile(
-                  title: Text(
-                    reciterName,
-                    style: TextStyle(
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: isSelected
-                          ? const Color(0xFF1B5E20)
-                          : Colors.black87,
-                    ),
-                  ),
-                  leading: Icon(
-                    isSelected
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_unchecked,
-                    color: const Color(0xFF1B5E20),
-                  ),
-                  onTap: () {
-                    setState(() => selectedReciter = reciterKey);
-                    _saveReciter(reciterKey);
-                    Navigator.pop(context);
-                  },
-                ),
-              );
-            },
+              // باقي القراء
+              ...otherReciters.entries.map((entry) {
+                return _buildReciterItem(entry.key, entry.value);
+              }),
+            ],
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'إغلاق',
+              style: TextStyle(color: Color(0xFF1B5E20)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReciterItem(String reciterKey, String reciterName) {
+    final isSelected = selectedReciter == reciterKey;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? const Color(0xFF1B5E20).withAlpha(26)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected
+              ? const Color(0xFF1B5E20)
+              : Colors.grey.withAlpha(51),
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+      child: ListTile(
+        title: Text(
+          reciterName,
+          style: TextStyle(
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? const Color(0xFF1B5E20) : Colors.black87,
+            fontSize: 15,
+          ),
+        ),
+        leading: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF1B5E20)
+                : Colors.grey.withAlpha(51),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            isSelected
+                ? Icons.radio_button_checked
+                : Icons.radio_button_unchecked,
+            color: isSelected ? Colors.white : Colors.grey,
+            size: 20,
+          ),
+        ),
+        onTap: () {
+          setState(() => selectedReciter = reciterKey);
+          _saveReciter(reciterKey);
+          Navigator.pop(context);
+        },
       ),
     );
   }

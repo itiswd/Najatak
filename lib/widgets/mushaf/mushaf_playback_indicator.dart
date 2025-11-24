@@ -79,7 +79,7 @@ class MushafPlaybackIndicator extends StatelessWidget {
               Container(
                 height: 5,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1B5E20).withAlpha(128),
+                  color: const Color(0xFF1B5E20).withAlpha(32),
                 ),
                 child: Stack(
                   children: [
