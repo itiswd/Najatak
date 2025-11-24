@@ -15,6 +15,8 @@ class ContinuousAudioHandler {
   late AudioPlayer _audioPlayer;
   int _currentSurah = 0;
   int _currentAyah = 0;
+  int _playingSurah = 0; // ✅ الآية اللي شغالة فعلاً
+  int _playingAyah = 0; // ✅ الآية اللي شغالة فعلاً
   bool _isPlayingContinuously = false;
   String _currentReciter = 'Alafasy_128kbps'; // ✅ حفظ القارئ الحالي
 
@@ -42,7 +44,14 @@ class ContinuousAudioHandler {
   /// تهيئة جلسة الصوت للعمل في الخلفية
   Future<void> _setupAudioSession() async {
     try {
+      // ✅ الاستماع لبدء التشغيل لتحديث الواجهة فوراً
       _audioPlayer.playerStateStream.listen((state) {
+        // عند بدء التشغيل، تأكد من تحديث الواجهة
+        if (state.processingState == ProcessingState.ready ||
+            state.processingState == ProcessingState.buffering) {
+          // لا شيء - الحالة محدثة بالفعل
+        }
+
         if (state.processingState == ProcessingState.completed) {
           _onAyahCompleted();
         }
@@ -110,19 +119,28 @@ class ContinuousAudioHandler {
   /// تشغيل الآية التالية تلقائياً
   Future<bool> _playNextAyah(int surahNumber, int ayahNumber) async {
     try {
+      debugPrint(
+        '🎵 جاري تشغيل: $surahNumber:$ayahNumber بصوت $_currentReciter',
+      );
+
       // ✅ استخدام القارئ المحفوظ
       final url = _buildAudioUrl(surahNumber, ayahNumber, _currentReciter);
 
-      debugPrint('🎵 تشغيل: $surahNumber:$ayahNumber بصوت $_currentReciter');
+      // ✅ تحديث الآية اللي هتتشغل دلوقتي (للعرض فقط)
+      _playingSurah = surahNumber;
+      _playingAyah = ayahNumber;
 
       await _audioPlayer.setUrl(url);
       await _audioPlayer.play();
 
+      // ✅ بعد التشغيل، حفظ الآية اللي فعلاً اتشغلت
       _currentSurah = surahNumber;
       _currentAyah = ayahNumber;
 
       // حفظ التقدم
       await _savePlaybackState();
+
+      debugPrint('✅ تم تشغيل: $surahNumber:$ayahNumber');
 
       return true;
     } catch (e) {
@@ -142,6 +160,7 @@ class ContinuousAudioHandler {
 
       if (nextAyah <= totalAyahs) {
         // الاستمرار في نفس السورة
+        debugPrint('📖 الانتقال للآية التالية: $_currentSurah:$nextAyah');
         await _playNextAyah(_currentSurah, nextAyah);
       } else {
         // الانتقال إلى السورة التالية
@@ -164,7 +183,12 @@ class ContinuousAudioHandler {
   Future<void> stopContinuousReading() async {
     try {
       await _audioPlayer.stop();
+      await _audioPlayer.pause();
       _isPlayingContinuously = false;
+      _currentSurah = 0;
+      _currentAyah = 0;
+      _playingSurah = 0;
+      _playingAyah = 0;
       await _savePlaybackState();
       debugPrint('⏹️ تم إيقاف القراءة المستمرة');
     } catch (e) {
@@ -205,10 +229,10 @@ class ContinuousAudioHandler {
   }
 
   /// الحصول على حالة التشغيل الحالية
-  bool get isPlaying => _audioPlayer.playing;
+  bool get isPlaying => _audioPlayer.playing && _isPlayingContinuously;
   bool get isContinuousReading => _isPlayingContinuously;
-  int get currentSurah => _currentSurah;
-  int get currentAyah => _currentAyah;
+  int get currentSurah => _playingSurah > 0 ? _playingSurah : _currentSurah;
+  int get currentAyah => _playingAyah > 0 ? _playingAyah : _currentAyah;
   String get currentReciter => _currentReciter;
 
   /// الحصول على مجرى تدفق حالة المشغل
