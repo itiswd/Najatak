@@ -30,7 +30,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   Set<int> bookmarkedAyahs = {};
   bool isLoading = true;
   bool isDarkMode = false;
-  double fontSize = 24.0;
+  double fontSize = 26.0;
   int? playingAyahNumber;
   bool showTranslation = false;
   bool showTafsir = false;
@@ -203,9 +203,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                     Expanded(
                       child: Slider(
                         value: fontSize,
-                        min: 18,
-                        max: 36,
-                        divisions: 18,
+                        min: 22,
+                        max: 34,
+                        divisions: 8,
                         activeColor: const Color(0xFF1B5E20),
                         onChanged: (value) {
                           setDialogState(() => fontSize = value);
@@ -603,16 +603,54 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                     : const Color(0xFF1B5E20).withAlpha(8),
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: Text(
-                verse,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: fontSize,
-                  height: 2.1,
-                  fontFamily: 'KFGQPC',
-                  color: textColor,
-                  fontWeight: FontWeight.w700,
-                ),
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                children: [
+                  Text(
+                    verse,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      height: 2.1,
+                      fontFamily: 'KFGQPC',
+                      color: textColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+                    child: SizedBox(
+                      width: fontSize * 1.5,
+                      height: fontSize * 1.5,
+                      child: Stack(
+                        children: [
+                          Image.asset("assets/images/aya_icon.png"),
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Text(
+                                _toArabicNumbers(ayahNumber),
+                                style: TextStyle(
+                                  fontSize: ayahNumber > 9
+                                      ? fontSize - 13
+                                      : ayahNumber > 99
+                                      ? fontSize - 16
+                                      : fontSize - 10,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -4,
+                                  fontFamily: 'Amiri',
+                                  height: 1.0,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
@@ -623,6 +661,15 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         ),
       ),
     );
+  }
+
+  String _toArabicNumbers(int number) {
+    const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return number
+        .toString()
+        .split('')
+        .map((digit) => arabicNumerals[int.parse(digit)])
+        .join();
   }
 
   Widget _buildTafsirSection(int ayahNumber, Color textColor) {

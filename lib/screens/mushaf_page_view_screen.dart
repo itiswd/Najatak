@@ -24,7 +24,7 @@ class MushafPageViewScreen extends StatefulWidget {
 class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
   late PageController _pageController;
   int currentPage = 1;
-  double fontSize = 22.0;
+  double fontSize = 26.0;
   bool showPageNumber = true;
   bool _showUI = true;
 
@@ -187,9 +187,9 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-                  style: TextStyle(fontFamily: 'KFGQPC', fontSize: 24),
+                  style: TextStyle(fontFamily: 'KFGQPC', fontSize: fontSize),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
@@ -200,9 +200,9 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
                     Expanded(
                       child: Slider(
                         value: fontSize,
-                        min: 18,
-                        max: 32,
-                        divisions: 14,
+                        min: 22,
+                        max: 34,
+                        divisions: 8,
                         activeColor: const Color(0xFF1B5E20),
                         onChanged: (value) {
                           setDialogState(() => fontSize = value);

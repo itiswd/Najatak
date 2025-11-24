@@ -14,46 +14,71 @@ class MushafAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onGoToPageTap,
   });
 
-  String _toArabicNumbers(int number) {
-    const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-    return number
-        .toString()
-        .split('')
-        .map((digit) => arabicNumerals[int.parse(digit)])
-        .join();
-  }
-
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      centerTitle: false,
       title: Text(
-        'صفحة ${_toArabicNumbers(currentPage)}',
+        'المصحف',
         style: const TextStyle(
-          fontSize: 18,
+          fontSize: 28,
           fontWeight: FontWeight.bold,
           color: Color(0xFF1B5E20),
-          fontFamily: 'Amiri',
+          fontFamily: 'Cairo',
         ),
       ),
       backgroundColor: const Color(0xFFF5EFE0),
       elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1B5E20)),
-        onPressed: () => Navigator.pop(context),
+      leading: Align(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(2, 6, 10, 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1B5E20).withAlpha(25),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: InkWell(
+            onTap: () => Navigator.pop(context),
+            child: const Icon(Icons.arrow_back_ios, color: Color(0xFF1B5E20)),
+          ),
+        ),
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.person, color: Color(0xFF1B5E20)),
-          onPressed: onReciterTap,
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1B5E20).withAlpha(25),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: InkWell(
+            onTap: onReciterTap,
+            child: const Icon(Icons.person, color: Color(0xFF1B5E20)),
+          ),
         ),
-        IconButton(
-          icon: const Icon(Icons.format_size, color: Color(0xFF1B5E20)),
-          onPressed: onFontSizeTap,
+        SizedBox(width: 6),
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1B5E20).withAlpha(25),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: InkWell(
+            onTap: onFontSizeTap,
+            child: Icon(Icons.format_size, color: Color(0xFF1B5E20)),
+          ),
         ),
-        IconButton(
-          icon: const Icon(Icons.search, color: Color(0xFF1B5E20)),
-          onPressed: onGoToPageTap,
+        SizedBox(width: 6),
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1B5E20).withAlpha(25),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: InkWell(
+            onTap: onGoToPageTap,
+            child: const Icon(Icons.search, color: Color(0xFF1B5E20)),
+          ),
         ),
+        SizedBox(width: 12),
       ],
     );
   }

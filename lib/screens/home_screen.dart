@@ -297,7 +297,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 child: Container(
                   padding: const EdgeInsets.all(12),
-                  child: const Icon(Icons.edit, color: Colors.white, size: 26),
+                  child: const Icon(
+                    Icons.edit_notifications,
+                    color: Colors.white,
+                    size: 26,
+                  ),
                 ),
               ),
             ),
