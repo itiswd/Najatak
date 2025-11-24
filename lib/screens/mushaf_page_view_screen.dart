@@ -41,7 +41,6 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
     'Abdul_Basit_Murattal_192kbps': 'عبد الباسط',
     'Abdurrahmaan_As-Sudais_192kbps': 'السديس',
     'Ghamadi_40kbps': 'سعد الغامدي', // ✅ مصحح
-    'Ajamy_128kbps_copy': 'أحمد العجمي', // ✅ مصحح
     'MaherAlMuaiqly128kbps': 'ماهر المعيقلي', // ✅ مصحح
   };
 
@@ -321,7 +320,12 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
       appBar: _showUI
           ? MushafAppBar(
               currentPage: currentPage,
-              onReciterTap: _showReciterDialog,
+              onReciterTap: () async {
+                if (isPlaying) {
+                  await _audioHandler.stopContinuousReading();
+                }
+                _showReciterDialog();
+              },
               onFontSizeTap: _showFontSizeDialog,
               onGoToPageTap: _goToPage,
             )
