@@ -10,6 +10,7 @@ class MushafPlaybackIndicator extends StatelessWidget {
   final String selectedReciter;
   final Map<String, String> reciters;
   final VoidCallback onPlayTap;
+  final bool isLoading; // ✅ أضفنا المتغير للتحميل
 
   const MushafPlaybackIndicator({
     super.key,
@@ -21,6 +22,7 @@ class MushafPlaybackIndicator extends StatelessWidget {
     required this.selectedReciter,
     required this.reciters,
     required this.onPlayTap,
+    this.isLoading = false, // ✅ القيمة الافتراضية
   });
 
   String _toArabicNumbers(int number) {
@@ -127,7 +129,7 @@ class MushafPlaybackIndicator extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  // زر التشغيل
+                  // ✅ زر التشغيل مع loading animation
                   Container(
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
@@ -145,16 +147,29 @@ class MushafPlaybackIndicator extends StatelessWidget {
                       ],
                     ),
                     child: InkWell(
-                      onTap: onPlayTap,
+                      onTap: isLoading
+                          ? null
+                          : onPlayTap, // ✅ عطل الزر وقت التحميل
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
-                        child: Icon(
-                          isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
+                        child: isLoading
+                            ? SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white.withAlpha(200),
+                                  ),
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Icon(
+                                isPlaying
+                                    ? Icons.pause_rounded
+                                    : Icons.play_arrow_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
                       ),
                     ),
                   ),

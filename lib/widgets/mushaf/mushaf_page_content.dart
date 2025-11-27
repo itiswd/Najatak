@@ -57,7 +57,12 @@ class MushafPageContent extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFDF7),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(12),
+          topLeft: Radius.circular(12),
+          bottomRight: Radius.circular(24),
+          bottomLeft: Radius.circular(24),
+        ),
         // ✅ خط واحد فقط على الجانب (يمين أو شمال)
         border: Border(
           left: isRightPage
@@ -286,11 +291,11 @@ class MushafPageContent extends StatelessWidget {
         ),
         border: Border(
           top: BorderSide(
-            color: const Color(0xFFD4AF37).withAlpha(77),
-            width: 1.5,
+            color: const Color(0xFFD4AF37).withAlpha(128),
+            width: 1,
           ),
         ),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
       ),
       child: Center(
         child: Text(

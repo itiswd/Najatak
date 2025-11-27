@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:najatak/widgets/mushaf/mushaf_app_bar.dart';
 import 'package:najatak/widgets/mushaf/mushaf_page_content.dart';
 import 'package:najatak/widgets/mushaf/mushaf_playback_indicator.dart';
@@ -30,15 +31,13 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
 
   late ContinuousAudioHandler _audioHandler;
   bool isPlaying = false;
+  bool isLoading = false; // ✅ متتبع حالة التحميل
   bool isContinuousMode = false;
   int? playingSurah;
   int? playingAyah;
 
-  // ✅ قائمة كاملة بجميع القراء المتوفرين على everyayah.com
   final Map<String, String> reciters = {
-    // القراء الأكثر شهرة - جودة عالية
     'Husary_128kbps': 'محمود خليل الحصري',
-    // 'Minshawi_128kbps': 'محمد صديق المنشاوي',
     'Abdul_Basit_Murattal_192kbps': 'عبد الباسط عبد الصمد (مرتل)',
     'mahmoud_ali_al_banna_32kbps': 'محمود علي البنا',
     'Muhammad_Ayyoub_128kbps': 'محمد أيوب',
@@ -49,17 +48,13 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
     'Saood_ash-Shuraym_64kbps': 'سعود الشريم',
     'Ghamadi_40kbps': 'سعد الغامدي',
     'Fares_Abbad_64kbps': 'فارس عباد',
-
-    // قراء مميزون - جودة متوسطة وعالية
     'Muhammad_Jibreel_128kbps': 'محمد جبريل',
     'AbdulSamad_64kbps_QuranExplorer.Com': 'عبد الباسط عبد الصمد (مجود)',
     'Abdurrahmaan_As-Sudais_192kbps': 'عبد الرحمن السديس',
     'Ayman_Sowaid_64kbps': 'أيمن سويد',
-    'Ahmed_ibn_Ali_al-Ajamy_128kbps_ketaballah.net': 'أحمد العجمي',
+    'Ahmed_ibn_Ali_al_Ajamy_128kbps_ketaballah.net': 'أحمد العجمي',
     'Husary_Muallim_128kbps': 'محمود خليل الحصري (معلم)',
     'Abu_Bakr_Ash-Shaatree_128kbps': 'أبو بكر الشاطري',
-
-    // قراء إضافيون
     'Abdullah_Basfar_192kbps': 'عبد الله بصفر',
     'Abdullaah_3awwaad_Al-Juhaynee_128kbps': 'عبد الله الجهني',
     'Muhsin_Al_Qasim_192kbps': 'محسن القاسم',
@@ -101,6 +96,10 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
       if (mounted) {
         setState(() {
           isPlaying = _audioHandler.isPlaying;
+          // ✅ تحديث حالة التحميل بناء على حالة المشغل
+          isLoading =
+              state.processingState == ProcessingState.buffering ||
+              state.processingState == ProcessingState.loading;
           isContinuousMode = _audioHandler.isContinuousReading;
           playingSurah = _audioHandler.currentSurah;
           playingAyah = _audioHandler.currentAyah;
@@ -131,10 +130,8 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
   }
 
   void _showReciterDialog() {
-    // تقسيم القراء إلى مجموعات
     final popularReciters = {
       'Husary_128kbps': 'محمود خليل الحصري',
-      // 'Minshawi_128kbps': 'محمد صديق المنشاوي',
       'Abdul_Basit_Murattal_192kbps': 'عبد الباسط عبد الصمد (مرتل)',
       'mahmoud_ali_al_banna_32kbps': 'محمود علي البنا',
       'Muhammad_Ayyoub_128kbps': 'محمد أيوب',
@@ -182,12 +179,9 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
           child: ListView(
             shrinkWrap: true,
             children: [
-              // القراء الأكثر شهرة
               ...popularReciters.entries.map((entry) {
                 return _buildReciterItem(entry.key, entry.value);
               }),
-
-              // باقي القراء
               ...otherReciters.entries.map((entry) {
                 return _buildReciterItem(entry.key, entry.value);
               }),
@@ -381,8 +375,12 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
     if (isPlaying) {
       await _audioHandler.stopContinuousReading();
     } else {
+      setState(() => isLoading = true); // ✅ بدء حالة التحميل
       final verses = MushafPageContent.getPageVerses(currentPage);
-      if (verses.isEmpty) return;
+      if (verses.isEmpty) {
+        setState(() => isLoading = false);
+        return;
+      }
 
       final firstVerse = verses.first;
       final surahNumber = firstVerse['surah'] as int;
@@ -395,6 +393,7 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
         totalAyahs: verseCount,
         reciter: selectedReciter,
       );
+      // ✅ حالة التحميل ستتحدث تلقائياً من _setupAudioListener
     }
   }
 
@@ -444,6 +443,7 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
                   child: MushafPlaybackIndicator(
                     currentPage: currentPage,
                     isPlaying: isPlaying,
+                    isLoading: isLoading, // ✅ تمرير حالة التحميل
                     isContinuousMode: isContinuousMode,
                     playingSurah: playingSurah,
                     playingAyah: playingAyah,
