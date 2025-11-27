@@ -260,7 +260,7 @@ List<Map<String, String>> _getAzkarData() {
 class PeriodicAzkarWorker {
   /// تهيئة WorkManager
   static Future<void> initialize() async {
-    await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+    await Workmanager().initialize(callbackDispatcher);
     debugPrint("✅ تم تهيئة WorkManager");
   }
 
