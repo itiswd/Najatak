@@ -472,11 +472,36 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
     );
   }
 
-  void _openSearchScreen() {
-    Navigator.push(
+  void _openSearchScreen() async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const MushafSearchScreen()),
     );
+
+    // ✅ إذا رجعت البيانات من البحث
+    if (result != null && mounted) {
+      final surah = result['surah'] as int;
+      final ayah = result['ayah'] as int;
+      final page = result['page'] as int;
+
+      // تحديث الحالة
+      setState(() {
+        highlightedSurah = surah;
+        highlightedAyah = ayah;
+        currentPage = page;
+      });
+
+      // الانتقال للصفحة
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          page - 1,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+
+      debugPrint('✅ تم الانتقال: سورة $surah، آية $ayah، صفحة $page');
+    }
   }
 
   Future<void> _togglePlayback() async {

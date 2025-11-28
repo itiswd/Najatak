@@ -67,11 +67,10 @@ class _MushafSearchScreenState extends State<MushafSearchScreen> {
     });
   }
 
-  // ✅ حفظ البيانات والعودة
   void _navigateToPage(int surahNumber, int ayahNumber) async {
     final pageNumber = quran.getPageNumber(surahNumber, ayahNumber);
 
-    // حفظ الموضع في SharedPreferences
+    // حفظ البيانات في SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('quran_playback_surah', surahNumber);
     await prefs.setInt('quran_playback_ayah', ayahNumber);
@@ -81,9 +80,13 @@ class _MushafSearchScreenState extends State<MushafSearchScreen> {
       '✅ تم حفظ: سورة $surahNumber، آية $ayahNumber، صفحة $pageNumber',
     );
 
-    // العودة إلى شاشة المصحف (التي تم فتحها بالفعل)
+    // ✅ العودة مع تمرير البيانات
     if (mounted) {
-      Navigator.pop(context);
+      Navigator.pop(context, {
+        'surah': surahNumber,
+        'ayah': ayahNumber,
+        'page': pageNumber,
+      });
     }
   }
 
