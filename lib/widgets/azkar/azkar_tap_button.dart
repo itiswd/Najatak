@@ -6,8 +6,6 @@ class AzkarTapButton extends StatelessWidget {
   final Color color;
   final Gradient gradient;
   final Animation<double> scaleAnimation;
-  final VoidCallback onTap;
-  final VoidCallback onCompleted;
 
   const AzkarTapButton({
     super.key,
@@ -16,8 +14,6 @@ class AzkarTapButton extends StatelessWidget {
     required this.color,
     required this.gradient,
     required this.scaleAnimation,
-    required this.onTap,
-    required this.onCompleted,
   });
 
   @override
@@ -26,12 +22,6 @@ class AzkarTapButton extends StatelessWidget {
     final Color buttonColor = isCompleted ? Colors.green : color;
 
     return GestureDetector(
-      onTap: isCompleted
-          ? () {
-              Navigator.pop(context); // إغلاق الـ Bottom Sheet
-              onCompleted(); // استدعاء دالة عرض نافذة الإكمال
-            }
-          : onTap,
       child: ScaleTransition(
         scale: scaleAnimation,
         child: Container(
