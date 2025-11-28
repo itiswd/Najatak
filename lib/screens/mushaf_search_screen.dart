@@ -99,18 +99,18 @@ class _MushafSearchScreenState extends State<MushafSearchScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: const Color(0xFFF5EFE0),
+      backgroundColor: Color(0xFF1B5E20),
       elevation: 0,
       title: const Text(
         'البحث في المصحف',
         style: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
-          color: Color(0xFF1B5E20),
+          color: Colors.white,
         ),
       ),
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1B5E20)),
+        icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
         onPressed: () => Navigator.pop(context),
       ),
     );
@@ -120,7 +120,7 @@ class _MushafSearchScreenState extends State<MushafSearchScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFF5EFE0),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(13),
@@ -156,7 +156,7 @@ class _MushafSearchScreenState extends State<MushafSearchScreen> {
                 )
               : null,
           filled: true,
-          fillColor: const Color(0xFFF5EFE0),
+          fillColor: Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
             borderSide: const BorderSide(color: Color(0xFF1B5E20), width: 1.5),
@@ -188,7 +188,7 @@ class _MushafSearchScreenState extends State<MushafSearchScreen> {
   Widget _buildSearchModeSelector() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: Colors.white,
+      color: const Color(0xFFF5EFE0),
       child: Row(
         children: [
           _buildModeChip('الكل', 'all', Icons.search),

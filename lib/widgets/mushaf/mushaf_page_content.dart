@@ -109,10 +109,8 @@ class MushafPageContent extends StatelessWidget {
     }
 
     String currentSurah = '';
-    int currentSurahNumber = 0;
     List<InlineSpan> textSpans = [];
     List<Widget> widgets = [];
-    bool isFirstVerseOfNewSurah = false;
 
     for (int i = 0; i < verses.length; i++) {
       final verse = verses[i];
@@ -127,8 +125,6 @@ class MushafPageContent extends StatelessWidget {
         }
 
         currentSurah = surahName;
-        currentSurahNumber = surahNumber;
-        isFirstVerseOfNewSurah = true;
 
         if (verseNumber == 1) {
           widgets.add(_buildSurahHeader(surahName));
@@ -137,9 +133,7 @@ class MushafPageContent extends StatelessWidget {
         if (verseNumber == 1 && surahNumber != 1 && surahNumber != 9) {
           widgets.add(_buildBasmala());
         }
-      } else {
-        isFirstVerseOfNewSurah = false;
-      }
+      } else {}
 
       textSpans.addAll(_buildVerseSpans(verse));
     }
@@ -267,22 +261,6 @@ class MushafPageContent extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // ✅ إضافة توهج للآية المميزة
-            if (isSpecial)
-              Container(
-                width: fontSize + 10,
-                height: fontSize + 10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFD84315).withAlpha(128),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-              ),
             Image.asset(
               "assets/images/aya_icon.png",
               width: fontSize + 10,
