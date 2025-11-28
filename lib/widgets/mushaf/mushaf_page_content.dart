@@ -1,4 +1,5 @@
-// ignore_for_file: unused_local_variable
+// lib/widgets/mushaf/mushaf_page_content.dart
+// ✅ مع دعم التظليل للآيات
 
 import 'package:flutter/material.dart';
 import 'package:quran/quran.dart' as quran;
@@ -10,6 +11,8 @@ class MushafPageContent extends StatelessWidget {
   final bool isContinuousMode;
   final int? playingSurah;
   final int? playingAyah;
+  final int? highlightedSurah; // ✅ الآية المراد تظليلها
+  final int? highlightedAyah;
 
   const MushafPageContent({
     super.key,
@@ -19,6 +22,8 @@ class MushafPageContent extends StatelessWidget {
     required this.isContinuousMode,
     this.playingSurah,
     this.playingAyah,
+    this.highlightedSurah,
+    this.highlightedAyah,
   });
 
   static List<Map<String, dynamic>> getPageVerses(int pageNumber) {
@@ -51,7 +56,7 @@ class MushafPageContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final verses = getPageVerses(pageNumber);
-    final isRightPage = pageNumber % 2 == 0; // ✅ صفحة يمين أم شمال
+    final isRightPage = pageNumber % 2 == 0;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -63,7 +68,6 @@ class MushafPageContent extends StatelessWidget {
           bottomRight: Radius.circular(24),
           bottomLeft: Radius.circular(24),
         ),
-        // ✅ خط واحد فقط على الجانب (يمين أو شمال)
         border: Border(
           left: isRightPage
               ? BorderSide(color: Color(0xFF1B5E20), width: 2)
@@ -116,9 +120,7 @@ class MushafPageContent extends StatelessWidget {
       final verseNumber = verse['verse'] as int;
       final surahNumber = verse['surah'] as int;
 
-      // 🔥 اكتشاف بداية سورة جديدة
       if (currentSurah != surahName) {
-        // حفظ النص السابق
         if (textSpans.isNotEmpty) {
           widgets.add(_buildContinuousText(textSpans));
           textSpans = [];
@@ -128,13 +130,10 @@ class MushafPageContent extends StatelessWidget {
         currentSurahNumber = surahNumber;
         isFirstVerseOfNewSurah = true;
 
-        // ✅ عرض اسم السورة فقط في بداية السورة (الآية الأولى)
         if (verseNumber == 1) {
           widgets.add(_buildSurahHeader(surahName));
         }
 
-        // ✅ البسملة: تُعرض فقط للسور غير الفاتحة والتوبة
-        // وفقط إذا كانت الآية الأولى من السورة
         if (verseNumber == 1 && surahNumber != 1 && surahNumber != 9) {
           widgets.add(_buildBasmala());
         }
@@ -142,11 +141,9 @@ class MushafPageContent extends StatelessWidget {
         isFirstVerseOfNewSurah = false;
       }
 
-      // ✅ إضافة الآية
       textSpans.addAll(_buildVerseSpans(verse));
     }
 
-    // حفظ آخر نص
     if (textSpans.isNotEmpty) {
       widgets.add(_buildContinuousText(textSpans));
     }
@@ -209,10 +206,35 @@ class MushafPageContent extends StatelessWidget {
     final verseNumber = verse['verse'] as int;
     final surahNumber = verse['surah'] as int;
 
+    // ✅ التحقق من الآية قيد التشغيل
     final isCurrentlyPlaying =
         isContinuousMode &&
         playingSurah == surahNumber &&
         playingAyah == verseNumber;
+
+    // ✅ التحقق من الآية المظللة (من البحث)
+    final isHighlighted =
+        !isContinuousMode &&
+        highlightedSurah == surahNumber &&
+        highlightedAyah == verseNumber;
+
+    // ✅ اختيار اللون والخلفية المناسبة
+    Color textColor;
+    Color backgroundColor;
+
+    if (isCurrentlyPlaying) {
+      // الآية قيد التشغيل - لون أخضر
+      textColor = const Color(0xFF1B5E20);
+      backgroundColor = const Color(0xFF1B5E20).withAlpha(38);
+    } else if (isHighlighted) {
+      // الآية المظللة من البحث - لون برتقالي/ذهبي
+      textColor = const Color(0xFFD84315);
+      backgroundColor = const Color(0xFFFFE0B2);
+    } else {
+      // آية عادية
+      textColor = const Color(0xFF2C1810);
+      backgroundColor = Colors.transparent;
+    }
 
     return [
       TextSpan(
@@ -220,24 +242,23 @@ class MushafPageContent extends StatelessWidget {
         style: TextStyle(
           fontSize: fontSize,
           fontFamily: 'KFGQPC',
-          color: isCurrentlyPlaying
-              ? const Color(0xFF1B5E20)
-              : const Color(0xFF2C1810),
+          color: textColor,
           fontWeight: FontWeight.bold,
           height: 2.0,
-          backgroundColor: isCurrentlyPlaying
-              ? const Color(0xFF1B5E20).withAlpha(38)
-              : Colors.transparent,
+          backgroundColor: backgroundColor,
         ),
       ),
       WidgetSpan(
         alignment: PlaceholderAlignment.middle,
-        child: _buildVerseNumberCircle(verseNumber, isCurrentlyPlaying),
+        child: _buildVerseNumberCircle(
+          verseNumber,
+          isCurrentlyPlaying || isHighlighted,
+        ),
       ),
     ];
   }
 
-  Widget _buildVerseNumberCircle(int verseNumber, [bool isPlaying = false]) {
+  Widget _buildVerseNumberCircle(int verseNumber, [bool isSpecial = false]) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
       child: SizedBox(
@@ -246,6 +267,22 @@ class MushafPageContent extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
+            // ✅ إضافة توهج للآية المميزة
+            if (isSpecial)
+              Container(
+                width: fontSize + 10,
+                height: fontSize + 10,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFD84315).withAlpha(128),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+              ),
             Image.asset(
               "assets/images/aya_icon.png",
               width: fontSize + 10,

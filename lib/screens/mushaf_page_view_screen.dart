@@ -1,5 +1,5 @@
 // lib/screens/mushaf_page_view_screen_updated.dart
-// ✅ نسخة محسّنة مع البحث وتقليب سلس
+// ✅ مع دعم التظليل والاحتفاظ بالموضع
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -14,11 +14,13 @@ import 'mushaf_search_screen.dart';
 class MushafPageViewScreen extends StatefulWidget {
   final int initialPage;
   final int? surahNumber;
+  final int? highlightAyah; // ✅ الآية المراد تظليلها
 
   const MushafPageViewScreen({
     super.key,
     this.initialPage = 1,
     this.surahNumber,
+    this.highlightAyah, // ✅ إضافة المعامل
   });
 
   @override
@@ -38,6 +40,10 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
   bool isContinuousMode = false;
   int? playingSurah;
   int? playingAyah;
+
+  // ✅ للتظليل
+  int? highlightedSurah;
+  int? highlightedAyah;
 
   final Map<String, String> reciters = {
     'Husary_128kbps': 'محمود خليل الحصري',
@@ -72,20 +78,89 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
   void initState() {
     super.initState();
     currentPage = widget.initialPage;
-    // ✅ تحسين أداء PageController
+
+    // ✅ تعيين الآية المراد تظليلها
+    if (widget.surahNumber != null && widget.highlightAyah != null) {
+      highlightedSurah = widget.surahNumber;
+      highlightedAyah = widget.highlightAyah;
+    }
+
     _pageController = PageController(
       initialPage: currentPage - 1,
-      viewportFraction: 1.0, // صفحة كاملة
+      viewportFraction: 1.0,
     );
     _audioHandler = ContinuousAudioHandler();
     _loadSettings();
     _setupAudioListener();
+    _loadLastPosition(); // ✅ تحميل آخر موضع
   }
 
   @override
   void dispose() {
+    _saveLastPosition(); // ✅ حفظ الموضع عند الخروج
     _pageController.dispose();
     super.dispose();
+  }
+
+  // ✅ تحميل آخر موضع قراءة
+  Future<void> _loadLastPosition() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedPage = prefs.getInt('mushaf_last_page');
+      final savedSurah = prefs.getInt('mushaf_last_surah');
+      final savedAyah = prefs.getInt('mushaf_last_ayah');
+      final savedReciter = prefs.getString('selected_reciter');
+
+      if (savedReciter != null) {
+        setState(() => selectedReciter = savedReciter);
+      }
+
+      // ✅ إذا كان هناك موضع محفوظ وليس هناك آية محددة من البحث
+      if (savedPage != null && widget.highlightAyah == null) {
+        setState(() {
+          currentPage = savedPage;
+          if (savedSurah != null) highlightedSurah = savedSurah;
+          if (savedAyah != null) highlightedAyah = savedAyah;
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _pageController.jumpToPage(savedPage - 1);
+        });
+      }
+
+      debugPrint(
+        '✅ تم تحميل الموضع: صفحة $savedPage، سورة $savedSurah، آية $savedAyah',
+      );
+    } catch (e) {
+      debugPrint('❌ خطأ في تحميل الموضع: $e');
+    }
+  }
+
+  // ✅ حفظ آخر موضع قراءة
+  Future<void> _saveLastPosition() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('mushaf_last_page', currentPage);
+
+      if (highlightedSurah != null) {
+        await prefs.setInt('mushaf_last_surah', highlightedSurah!);
+      }
+      if (highlightedAyah != null) {
+        await prefs.setInt('mushaf_last_ayah', highlightedAyah!);
+      }
+
+      // ✅ حفظ حالة التشغيل الصوتي
+      if (playingSurah != null && playingAyah != null) {
+        await prefs.setInt('mushaf_audio_surah', playingSurah!);
+        await prefs.setInt('mushaf_audio_ayah', playingAyah!);
+      }
+
+      debugPrint(
+        '💾 تم حفظ الموضع: صفحة $currentPage، سورة $highlightedSurah، آية $highlightedAyah',
+      );
+    } catch (e) {
+      debugPrint('❌ خطأ في حفظ الموضع: $e');
+    }
   }
 
   Future<void> _loadSettings() async {
@@ -114,13 +189,18 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
         if (playingSurah != null && playingAyah != null) {
           final page = quran.getPageNumber(playingSurah!, playingAyah!);
           if (page != currentPage) {
-            // ✅ تقليب سلس بدون animation قوية
             _pageController.animateToPage(
               page - 1,
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeInOutCubic,
             );
           }
+
+          // ✅ تحديث الآية المظللة
+          setState(() {
+            highlightedSurah = playingSurah;
+            highlightedAyah = playingAyah;
+          });
         }
       }
     });
@@ -362,7 +442,6 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
                 if (selectedPage != null &&
                     selectedPage! >= 1 &&
                     selectedPage! <= 604) {
-                  // ✅ تقليب سلس للصفحة المطلوبة
                   _pageController.animateToPage(
                     selectedPage! - 1,
                     duration: const Duration(milliseconds: 400),
@@ -383,7 +462,6 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
     );
   }
 
-  // ✅ فتح شاشة البحث
   void _openSearchScreen() {
     Navigator.push(
       context,
@@ -391,25 +469,37 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
     );
   }
 
+  // ✅ تشغيل الصوت من الآية المظللة
   Future<void> _togglePlayback() async {
     if (isPlaying) {
       await _audioHandler.stopContinuousReading();
     } else {
       setState(() => isLoading = true);
-      final verses = MushafPageContent.getPageVerses(currentPage);
-      if (verses.isEmpty) {
-        setState(() => isLoading = false);
-        return;
+
+      // ✅ إذا كانت هناك آية مظللة، ابدأ منها
+      int startSurah;
+      int startAyah;
+
+      if (highlightedSurah != null && highlightedAyah != null) {
+        startSurah = highlightedSurah!;
+        startAyah = highlightedAyah!;
+      } else {
+        // خلاف ذلك، ابدأ من أول آية في الصفحة
+        final verses = MushafPageContent.getPageVerses(currentPage);
+        if (verses.isEmpty) {
+          setState(() => isLoading = false);
+          return;
+        }
+        final firstVerse = verses.first;
+        startSurah = firstVerse['surah'] as int;
+        startAyah = firstVerse['verse'] as int;
       }
 
-      final firstVerse = verses.first;
-      final surahNumber = firstVerse['surah'] as int;
-      final ayahNumber = firstVerse['verse'] as int;
-      final verseCount = quran.getVerseCount(surahNumber);
+      final verseCount = quran.getVerseCount(startSurah);
 
       await _audioHandler.startContinuousReading(
-        surahNumber: surahNumber,
-        startAyah: ayahNumber,
+        surahNumber: startSurah,
+        startAyah: startAyah,
         totalAyahs: verseCount,
         reciter: selectedReciter,
       );
@@ -453,7 +543,6 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
                   ),
                 ),
                 actions: [
-                  // ✅ زر البحث
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
@@ -522,13 +611,21 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
           onTap: () => setState(() => _showUI = !_showUI),
           child: Stack(
             children: [
-              // ✅ PageView محسّن للأداء
               PageView.builder(
                 controller: _pageController,
                 itemCount: 604,
-                physics: const PageScrollPhysics(), // ✅ تقليب طبيعي
-                onPageChanged: (index) =>
-                    setState(() => currentPage = index + 1),
+                physics: const PageScrollPhysics(),
+                onPageChanged: (index) {
+                  setState(() {
+                    currentPage = index + 1;
+                    // ✅ إزالة التظليل عند تغيير الصفحة يدوياً
+                    if (!isPlaying) {
+                      highlightedSurah = null;
+                      highlightedAyah = null;
+                    }
+                  });
+                  _saveLastPosition(); // ✅ حفظ الموضع عند تغيير الصفحة
+                },
                 itemBuilder: (context, index) => MushafPageContent(
                   pageNumber: index + 1,
                   fontSize: fontSize,
@@ -536,6 +633,8 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
                   isContinuousMode: isContinuousMode,
                   playingSurah: playingSurah,
                   playingAyah: playingAyah,
+                  highlightedSurah: highlightedSurah, // ✅ تمرير الآية المظللة
+                  highlightedAyah: highlightedAyah,
                 ),
               ),
               if (_showUI)

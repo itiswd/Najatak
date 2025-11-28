@@ -1,13 +1,11 @@
-// lib/services/quran_service.dart
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:najatak/services/quran_tafseer_service.dart'; // تأكد من صحة المسار
+import 'package:najatak/services/quran_tafseer_service.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/quran_model.dart'; // تأكد من صحة المسار
+import '../models/quran_model.dart';
 
 class QuranService {
   static const String _bookmarksKey = 'quran_bookmarks';
@@ -15,12 +13,9 @@ class QuranService {
   static const String _lastReadKey = 'last_read_surah';
   static const String _khatmahKey = 'quran_khatmah';
   static const String _themeKey = 'quran_dark_mode';
+  static const String _lastMushafPageKey = 'last_mushaf_page';
+  static const String _lastAudioPositionKey = 'last_audio_position';
 
-  // ═══════════════════════════════════════════════════════════════
-  // البيانات الأساسية (Basic Getters)
-  // ═══════════════════════════════════════════════════════════════
-
-  // الحصول على جميع السور
   static List<SurahInfo> getAllSurahs() {
     return List.generate(114, (index) {
       final surahNumber = index + 1;
@@ -35,7 +30,6 @@ class QuranService {
     });
   }
 
-  // الحصول على آية محددة
   static String getAyah(
     int surahNumber,
     int ayahNumber, {
@@ -58,7 +52,6 @@ class QuranService {
     }
   }
 
-  // الحصول على كل آيات سورة
   static List<String> getSurahVerses(int surahNumber) {
     final versesCount = quran.getVerseCount(surahNumber);
     return List.generate(
@@ -67,19 +60,61 @@ class QuranService {
     );
   }
 
-  // الحصول على رقم الجزء
   static int getJuzNumber(int surahNumber, int ayahNumber) {
     return quran.getJuzNumber(surahNumber, ayahNumber);
   }
 
-  // الحصول على رقم الصفحة
   static int getPageNumber(int surahNumber, int ayahNumber) {
     return quran.getPageNumber(surahNumber, ayahNumber);
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // إدارة الإشارات المرجعية (Bookmarks)
-  // ═══════════════════════════════════════════════════════════════
+  static Future<void> saveLastMushafPage(int pageNumber) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_lastMushafPageKey, pageNumber);
+    } catch (e) {
+      debugPrint('خطأ في حفظ آخر صفحة: $e');
+    }
+  }
+
+  static Future<int?> getLastMushafPage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getInt(_lastMushafPageKey);
+    } catch (e) {
+      debugPrint('خطأ في تحميل آخر صفحة: $e');
+      return null;
+    }
+  }
+
+  static Future<void> saveLastAudioPosition({
+    required int surahNumber,
+    required int ayahNumber,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _lastAudioPositionKey,
+        json.encode({'surah': surahNumber, 'ayah': ayahNumber}),
+      );
+    } catch (e) {
+      debugPrint('خطأ في حفظ موضع الصوت: $e');
+    }
+  }
+
+  static Future<Map<String, int>?> getLastAudioPosition() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final positionJson = prefs.getString(_lastAudioPositionKey);
+      if (positionJson == null) return null;
+
+      final decoded = json.decode(positionJson);
+      return {'surah': decoded['surah'], 'ayah': decoded['ayah']};
+    } catch (e) {
+      debugPrint('خطأ في تحميل موضع الصوت: $e');
+      return null;
+    }
+  }
 
   static Future<List<AyahBookmark>> getBookmarks() async {
     try {
@@ -148,10 +183,6 @@ class QuranService {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // إدارة سجل القراءة (Reading History)
-  // ═══════════════════════════════════════════════════════════════
-
   static Future<ReadingProgress?> getLastProgress() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -197,10 +228,6 @@ class QuranService {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // إدارة الختمات (Khatmah)
-  // ═══════════════════════════════════════════════════════════════
-
   static Future<Map<String, bool>> getKhatmahProgress() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -242,10 +269,6 @@ class QuranService {
     return ((completedCount / 114) * 100).round();
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // وضع الليل (Theme)
-  // ═══════════════════════════════════════════════════════════════
-
   static Future<bool> getDarkMode() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -264,16 +287,11 @@ class QuranService {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // 🔍 محرك البحث المحسّن (Advanced Search)
-  // ═══════════════════════════════════════════════════════════════
-
-  /// إزالة التشكيل من النص العربي لتوحيد البحث
   static String removeArabicDiacritics(String text) {
     return text
-        .replaceAll(RegExp(r'[\u064B-\u065F\u0670]'), '') // التشكيل
-        .replaceAll('ٱ', 'ا') // ألف وصل
-        .replaceAll('ٰ', 'ا') // ألف خنجرية
+        .replaceAll(RegExp(r'[\u064B-\u065F\u0670]'), '')
+        .replaceAll('ٱ', 'ا')
+        .replaceAll('ٰ', 'ا')
         .replaceAll('أ', 'ا')
         .replaceAll('إ', 'ا')
         .replaceAll('آ', 'ا')
@@ -282,7 +300,6 @@ class QuranService {
         .trim();
   }
 
-  /// البحث المحسّن في القرآن (يدعم التشكيل وبدونه)
   static List<Map<String, dynamic>> searchQuran(
     String query, {
     int limit = 50,
@@ -292,7 +309,6 @@ class QuranService {
     final results = <Map<String, dynamic>>[];
     final normalizedQuery = removeArabicDiacritics(query.toLowerCase());
 
-    // 🔍 البحث في أسماء السور أولاً
     final surahResults = _searchInSurahNames(normalizedQuery);
     results.addAll(surahResults);
 
@@ -300,7 +316,6 @@ class QuranService {
       return results.take(limit).toList();
     }
 
-    // 🔍 البحث في الآيات
     final verseResults = _searchInVerses(
       normalizedQuery,
       limit - results.length,
@@ -310,7 +325,6 @@ class QuranService {
     return results;
   }
 
-  /// Helper: البحث في أسماء السور
   static List<Map<String, dynamic>> _searchInSurahNames(String query) {
     final results = <Map<String, dynamic>>[];
 
@@ -319,7 +333,6 @@ class QuranService {
       final normalizedName = removeArabicDiacritics(surahName.toLowerCase());
 
       if (normalizedName.contains(query)) {
-        // إذا وجدنا السورة، نضيف أول 5 آيات منها
         final verseCount = quran.getVerseCount(surah);
         final maxVerses = verseCount < 5 ? verseCount : 5;
 
@@ -331,12 +344,11 @@ class QuranService {
             'ayahText': quran.getVerse(surah, ayah),
             'juz': quran.getJuzNumber(surah, ayah),
             'page': quran.getPageNumber(surah, ayah),
-            'matchType': 'surah_name', // 🏷️ نوع المطابقة
-            'relevanceScore': 100, // أعلى نقاط للسور
+            'matchType': 'surah_name',
+            'relevanceScore': 100,
           });
         }
 
-        // نكتفي بسورة واحدة إذا كان البحث عن اسم سورة وتطابق تماماً
         if (normalizedName == query) {
           break;
         }
@@ -346,7 +358,6 @@ class QuranService {
     return results;
   }
 
-  /// Helper: البحث في الآيات
   static List<Map<String, dynamic>> _searchInVerses(String query, int limit) {
     final results = <Map<String, dynamic>>[];
 
@@ -362,7 +373,6 @@ class QuranService {
         final normalizedVerse = removeArabicDiacritics(verse.toLowerCase());
 
         if (normalizedVerse.contains(query)) {
-          // حساب درجة الصلة (كلما كان التطابق أقرب للبداية = أعلى)
           final matchIndex = normalizedVerse.indexOf(query);
           final relevanceScore = 50 - (matchIndex / 10).round();
 
@@ -380,7 +390,6 @@ class QuranService {
       }
     }
 
-    // ترتيب النتائج حسب درجة الصلة
     results.sort(
       (a, b) =>
           (b['relevanceScore'] as int).compareTo(a['relevanceScore'] as int),
@@ -389,7 +398,6 @@ class QuranService {
     return results;
   }
 
-  /// بحث سريع في أسماء السور فقط (يستخدم للقوائم المنسدلة مثلاً)
   static List<Map<String, dynamic>> searchSurahNames(String query) {
     if (query.trim().isEmpty) return [];
 
@@ -414,7 +422,6 @@ class QuranService {
     return results;
   }
 
-  /// تمييز النص المطابق في نتيجة البحث (Highlighting)
   static String highlightMatch(String text, String query) {
     final normalizedText = removeArabicDiacritics(text.toLowerCase());
     final normalizedQuery = removeArabicDiacritics(query.toLowerCase());
@@ -422,7 +429,6 @@ class QuranService {
     final startIndex = normalizedText.indexOf(normalizedQuery);
     if (startIndex == -1) return text;
 
-    // نحتاج لإيجاد الموضع الحقيقي في النص الأصلي (لأن النص الأصلي يحتوي على تشكيل)
     int realIndex = 0;
     int normalizedIndex = 0;
 
@@ -433,7 +439,6 @@ class QuranService {
       realIndex++;
     }
 
-    // حساب طول الكلمة المطابقة في النص الأصلي
     int matchLength = 0;
     int matchedChars = 0;
 
@@ -450,22 +455,12 @@ class QuranService {
     final match = text.substring(realIndex, realIndex + matchLength);
     final after = text.substring(realIndex + matchLength);
 
-    // يمكنك تغيير التنسيق هنا حسب ما يناسب الـ UI الخاص بك
-    // مثلاً استخدام رموز خاصة لتمييز النص ثم معالجتها في الـ Widget
     return '$before**$match**$after';
   }
-
-  // ═══════════════════════════════════════════════════════════════
-  // التفسير المبسط (Tafseer)
-  // ═══════════════════════════════════════════════════════════════
 
   static String getSimpleTafsir(int surahNumber, int ayahNumber) {
     return QuranTafsirService.getTafsir(surahNumber, ayahNumber);
   }
-
-  // ═══════════════════════════════════════════════════════════════
-  // وظائف مساعدة (Helpers)
-  // ═══════════════════════════════════════════════════════════════
 
   static String getBasmala() {
     return 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
@@ -485,7 +480,6 @@ class QuranService {
         .join();
   }
 
-  // روابط الصوت
   static String getAudioUrl(
     int surahNumber,
     int ayahNumber, {
@@ -496,7 +490,6 @@ class QuranService {
     return 'https://everyayah.com/data/$reciter/$surahStr$ayahStr.mp3';
   }
 
-  // تنسيق الآية للمشاركة
   static String formatAyahForSharing(
     int surahNumber,
     int ayahNumber,

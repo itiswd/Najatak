@@ -1,4 +1,5 @@
 // lib/screens/mushaf_search_screen.dart
+// ✅ مع تمرير الآية للتظليل
 
 import 'package:flutter/material.dart';
 import 'package:najatak/screens/mushaf_page_view_screen.dart';
@@ -18,7 +19,7 @@ class _MushafSearchScreenState extends State<MushafSearchScreen> {
   List<Map<String, dynamic>> searchResults = [];
   bool isSearching = false;
   bool hasSearched = false;
-  String _currentSearchMode = 'all'; // all, surah, verse
+  String _currentSearchMode = 'all';
 
   @override
   void dispose() {
@@ -37,7 +38,6 @@ class _MushafSearchScreenState extends State<MushafSearchScreen> {
 
     setState(() => isSearching = true);
 
-    // بحث مع debounce
     Future.delayed(const Duration(milliseconds: 300), () {
       if (!mounted) return;
 
@@ -67,6 +67,7 @@ class _MushafSearchScreenState extends State<MushafSearchScreen> {
     });
   }
 
+  // ✅ تحديث الدالة لتمرير الآية للتظليل
   void _navigateToPage(int surahNumber, int ayahNumber) {
     final pageNumber = quran.getPageNumber(surahNumber, ayahNumber);
     Navigator.pushReplacement(
@@ -75,6 +76,7 @@ class _MushafSearchScreenState extends State<MushafSearchScreen> {
         builder: (context) => MushafPageViewScreen(
           initialPage: pageNumber,
           surahNumber: surahNumber,
+          highlightAyah: ayahNumber, // ✅ تمرير الآية للتظليل
         ),
       ),
     );
