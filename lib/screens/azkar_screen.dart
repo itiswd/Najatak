@@ -7,7 +7,14 @@ import '../models/azkar_model.dart';
 import '../services/notification_service.dart';
 
 class AzkarScreen extends StatefulWidget {
-  const AzkarScreen({super.key});
+  final String? initialCategory; // ✅ نوع الذكر المطلوب فتحه
+  final bool openDirectly; // ✅ هل نفتح الذكر مباشرة؟
+
+  const AzkarScreen({
+    super.key,
+    this.initialCategory,
+    this.openDirectly = false,
+  });
 
   @override
   State<AzkarScreen> createState() => _AzkarScreenState();
@@ -25,6 +32,11 @@ class _AzkarScreenState extends State<AzkarScreen>
 
   late AnimationController _animationController;
 
+  // ✅ مفاتيح للتحكم في ExpansionTile
+  final GlobalKey<State> morningKey = GlobalKey();
+  final GlobalKey<State> eveningKey = GlobalKey();
+  final GlobalKey<State> sleepKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -33,6 +45,54 @@ class _AzkarScreenState extends State<AzkarScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+
+    // ✅ فتح الذكر المحدد بعد بناء الواجهة
+    if (widget.openDirectly && widget.initialCategory != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _openCategoryAutomatically();
+      });
+    }
+  }
+
+  // ✅ فتح الذكر تلقائياً
+  void _openCategoryAutomatically() {
+    // الانتظار قليلاً للتأكد من بناء الواجهة
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+
+      List<Azkar>? azkarList;
+      Color? color;
+      Gradient? gradient;
+
+      switch (widget.initialCategory) {
+        case 'morning_azkar':
+          azkarList = AzkarData.morningAzkar;
+          color = Colors.orange;
+          gradient = const LinearGradient(
+            colors: [Color(0xFFFFA726), Color(0xFFFF6F00)],
+          );
+          break;
+        case 'evening_azkar':
+          azkarList = AzkarData.eveningAzkar;
+          color = Colors.indigo;
+          gradient = const LinearGradient(
+            colors: [Color(0xFF5C6BC0), Color(0xFF283593)],
+          );
+          break;
+        case 'sleep_azkar':
+          azkarList = AzkarData.sleepAzkar;
+          color = Colors.purple;
+          gradient = const LinearGradient(
+            colors: [Color(0xFF9C27B0), Color(0xFF4A148C)],
+          );
+          break;
+      }
+
+      if (azkarList != null && azkarList.isNotEmpty) {
+        // فتح أول ذكر مباشرة
+        _showAzkarDetails(azkarList[0], color!, gradient!);
+      }
+    });
   }
 
   @override
@@ -104,11 +164,10 @@ class _AzkarScreenState extends State<AzkarScreen>
         await prefs.setInt('morning_hour', picked.hour);
         await prefs.setInt('morning_minute', picked.minute);
 
-        // استخدام NotificationType.morning
         await NotificationService.scheduleDailyNotification(
           id: 100,
-          title: 'أذكار الصباح',
-          body: 'حان وقت أذكار الصباح',
+          title: 'أذكار الصباح • نَجَاتَك',
+          body: 'حان وقت أذكار الصباح ☀️',
           hour: picked.hour,
           minute: picked.minute,
           type: NotificationType.morning,
@@ -150,8 +209,8 @@ class _AzkarScreenState extends State<AzkarScreen>
 
         await NotificationService.scheduleDailyNotification(
           id: 101,
-          title: 'أذكار المساء',
-          body: 'حان وقت أذكار المساء',
+          title: 'أذكار المساء • نَجَاتَك',
+          body: 'حان وقت أذكار المساء 🌙',
           hour: picked.hour,
           minute: picked.minute,
           type: NotificationType.evening,
@@ -193,8 +252,8 @@ class _AzkarScreenState extends State<AzkarScreen>
 
         await NotificationService.scheduleDailyNotification(
           id: 102,
-          title: 'أذكار النوم',
-          body: 'لا تنسى أذكار النوم قبل أن تنام',
+          title: 'أذكار النوم • نَجَاتَك',
+          body: 'لا تنسى أذكار النوم قبل أن تنام 🌟',
           hour: picked.hour,
           minute: picked.minute,
           type: NotificationType.sleep,
@@ -238,21 +297,21 @@ class _AzkarScreenState extends State<AzkarScreen>
         initialTime = morningTime;
         notificationId = 100;
         title = 'أذكار الصباح • نَجَاتَك';
-        body = 'حان وقت أذكار الصباح';
+        body = 'حان وقت أذكار الصباح ☀️';
         notifType = NotificationType.morning;
         break;
       case 'evening':
         initialTime = eveningTime;
         notificationId = 101;
         title = 'أذكار المساء • نَجَاتَك';
-        body = 'حان وقت أذكار المساء';
+        body = 'حان وقت أذكار المساء 🌙';
         notifType = NotificationType.evening;
         break;
       case 'sleep':
         initialTime = sleepTime;
         notificationId = 102;
         title = 'أذكار النوم • نَجَاتَك';
-        body = 'لا تنسى أذكار النوم قبل أن تنام';
+        body = 'لا تنسى أذكار النوم قبل أن تنام 🌟';
         notifType = NotificationType.sleep;
         break;
       default:
@@ -376,6 +435,7 @@ class _AzkarScreenState extends State<AzkarScreen>
         padding: const EdgeInsets.all(16),
         children: [
           AzkarCategoryWidget(
+            key: morningKey,
             title: 'أذكار الصباح',
             subtitle: 'ابدأ يومك بالذكر والدعاء',
             icon: Icons.wb_sunny,
@@ -392,6 +452,7 @@ class _AzkarScreenState extends State<AzkarScreen>
           ),
           const SizedBox(height: 16),
           AzkarCategoryWidget(
+            key: eveningKey,
             title: 'أذكار المساء',
             subtitle: 'اختم نهارك بذكر الله',
             icon: Icons.nights_stay,
@@ -408,6 +469,7 @@ class _AzkarScreenState extends State<AzkarScreen>
           ),
           const SizedBox(height: 16),
           AzkarCategoryWidget(
+            key: sleepKey,
             title: 'أذكار النوم',
             subtitle: 'استعد لنوم هادئ مطمئن',
             icon: Icons.bedtime,

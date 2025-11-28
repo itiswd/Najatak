@@ -1,3 +1,4 @@
+// lib/services/notification_service.dart
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -27,7 +28,12 @@ class NotificationService {
         iOS: iosSettings,
       );
 
-      await _notifications.initialize(initSettings);
+      // ✅ إضافة معالج النقر على الإشعار
+      await _notifications.initialize(
+        initSettings,
+        onDidReceiveNotificationResponse: _onNotificationTapped,
+      );
+
       await _createNotificationChannels();
 
       final androidImplementation = _notifications
@@ -46,6 +52,12 @@ class NotificationService {
     }
   }
 
+  // ✅ معالج النقر على الإشعار
+  static void _onNotificationTapped(NotificationResponse response) {
+    debugPrint('🔔 تم النقر على الإشعار: ${response.payload}');
+    // سيتم التعامل مع التنقل في main.dart
+  }
+
   static Future<void> _createNotificationChannels() async {
     final androidImplementation = _notifications
         .resolvePlatformSpecificImplementation<
@@ -53,7 +65,7 @@ class NotificationService {
         >();
 
     if (androidImplementation != null) {
-      // قناة أذكار الصباح
+      // قناة أذكار الصباح - HIGH PRIORITY
       await androidImplementation.createNotificationChannel(
         AndroidNotificationChannel(
           'morning_azkar_channel',
@@ -62,11 +74,12 @@ class NotificationService {
           importance: Importance.max,
           playSound: true,
           enableVibration: false,
+          enableLights: true,
           sound: const RawResourceAndroidNotificationSound('morning_sound'),
         ),
       );
 
-      // قناة أذكار المساء
+      // قناة أذكار المساء - HIGH PRIORITY
       await androidImplementation.createNotificationChannel(
         AndroidNotificationChannel(
           'evening_azkar_channel',
@@ -75,6 +88,7 @@ class NotificationService {
           importance: Importance.max,
           playSound: true,
           enableVibration: false,
+          enableLights: true,
           sound: const RawResourceAndroidNotificationSound('evening_sound'),
         ),
       );
@@ -126,7 +140,7 @@ class NotificationService {
     }
   }
 
-  // جدولة إشعار يومي
+  // ✅ جدولة إشعار يومي محسّن
   static Future<void> scheduleDailyNotification({
     required int id,
     required String title,
@@ -136,23 +150,28 @@ class NotificationService {
     required NotificationType type,
   }) async {
     try {
+      // إلغاء الإشعار القديم
       await _notifications.cancel(id);
 
       String channelId;
       String soundName;
+      String payload;
 
       switch (type) {
         case NotificationType.morning:
           channelId = 'morning_azkar_channel';
           soundName = 'morning_sound';
+          payload = 'morning_azkar';
           break;
         case NotificationType.evening:
           channelId = 'evening_azkar_channel';
           soundName = 'evening_sound';
+          payload = 'evening_azkar';
           break;
         case NotificationType.sleep:
           channelId = 'sleep_azkar_channel';
           soundName = 'sleep_sound';
+          payload = 'sleep_azkar';
           break;
       }
 
@@ -162,17 +181,33 @@ class NotificationService {
             _getChannelName(type),
             channelDescription: 'إشعارات ${_getChannelName(type)}',
             importance: Importance.max,
-            priority: Priority.high,
+            priority: Priority.max,
             playSound: true,
             sound: RawResourceAndroidNotificationSound(soundName),
             enableVibration: false,
+            enableLights: true,
             icon: '@mipmap/launcher_icon',
+            // ✅ جعل الإشعار يظهر حتى مع وضع عدم الإزعاج
+            fullScreenIntent: true,
+            category: AndroidNotificationCategory.alarm,
+            // ✅ جعل الإشعار مستمر حتى يتم النقر عليه
+            autoCancel: false,
+            ongoing: false,
+            // ✅ إضافة أزرار تفاعلية
+            actions: [
+              const AndroidNotificationAction(
+                'open_azkar',
+                'فتح الأذكار',
+                showsUserInterface: true,
+              ),
+            ],
           );
 
       const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
+        interruptionLevel: InterruptionLevel.timeSensitive,
       );
 
       final NotificationDetails notificationDetails = NotificationDetails(
@@ -182,6 +217,7 @@ class NotificationService {
 
       final scheduledDate = _nextInstanceOfTime(hour, minute);
 
+      // ✅ جدولة الإشعار
       await _notifications.zonedSchedule(
         id,
         title,
@@ -190,16 +226,31 @@ class NotificationService {
         notificationDetails,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: DateTimeComponents.time,
+        payload: payload,
       );
 
-      debugPrint('✅ جدولة إشعار يومي - ID: $id');
+      // ✅ جدولة إشعارات إضافية للأيام القادمة (ضمان عدم التوقف)
+      for (int day = 1; day <= 7; day++) {
+        final futureDate = scheduledDate.add(Duration(days: day));
+        await _notifications.zonedSchedule(
+          id + (day * 1000), // ID مختلف لكل يوم
+          title,
+          body,
+          futureDate,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          payload: payload,
+        );
+      }
+
+      debugPrint('✅ جدولة إشعار يومي - ID: $id في $hour:$minute');
     } catch (e) {
       debugPrint('❌ خطأ في جدولة الإشعار اليومي: $e');
       rethrow;
     }
   }
 
-  // 🚀 جدولة الأذكار الدورية - مع إصلاح مشكلة التاريخ
+  // 🚀 جدولة الأذكار الدورية
   static Future<void> schedulePeriodicAzkar({
     required List<Map<String, String>> azkarList,
     required int intervalMinutes,
@@ -209,7 +260,6 @@ class NotificationService {
       debugPrint('🚀 بدء جدولة ${azkarList.length} ذكر دوري');
       debugPrint('⏱️  الفاصل الزمني: $intervalMinutes دقيقة');
 
-      // ✅ إلغاء سريع فقط للإشعارات الموجودة
       final pending = await _notifications.pendingNotificationRequests();
       final periodicIds = pending
           .where((n) => n.id >= 500 && n.id < 15000)
@@ -224,7 +274,6 @@ class NotificationService {
       final now = tz.TZDateTime.now(tz.local);
       int totalScheduled = 0;
 
-      // ✅ جدولة 50 إشعار لكل ذكر (تكفي لأسبوعين تقريباً)
       for (int azkarIndex = 0; azkarIndex < azkarList.length; azkarIndex++) {
         final zekr = azkarList[azkarIndex];
         final zekrText = zekr['text']!;
@@ -237,28 +286,20 @@ class NotificationService {
         }
 
         final channelId = 'periodic_zekr_${zekrNumber}_channel';
-
-        // 🔥 الإصلاح: أول ذكر يبدأ بعد دقيقة واحدة على الأقل
-        // ثم كل ذكر لاحق حسب ترتيبه
         final firstDelayMinutes = 1 + (intervalMinutes * azkarIndex);
 
         debugPrint(
           '📌 جدولة ذكر ${azkarIndex + 1}: أول ظهور بعد $firstDelayMinutes دقيقة',
         );
 
-        // جدولة 50 إشعار لكل ذكر
         for (int i = 0; i < 50; i++) {
           try {
             final notificationId = 500 + (azkarIndex * 100) + i;
-
-            // حساب وقت هذا الإشعار
             final totalMinutes =
                 firstDelayMinutes + (i * intervalMinutes * azkarList.length);
             final scheduledTime = now.add(Duration(minutes: totalMinutes));
 
-            // ✅ التحقق من أن التاريخ في المستقبل
             if (scheduledTime.isBefore(now)) {
-              debugPrint('⚠️ تخطي إشعار في الماضي: $scheduledTime');
               continue;
             }
 
@@ -285,7 +326,6 @@ class NotificationService {
 
             totalScheduled++;
 
-            // طباعة أول 3 إشعارات فقط
             if (i < 3) {
               debugPrint(
                 '   ✅ إشعار ${i + 1}: ${scheduledTime.day}/${scheduledTime.month} ${scheduledTime.hour}:${scheduledTime.minute.toString().padLeft(2, '0')}',
@@ -299,7 +339,6 @@ class NotificationService {
 
       debugPrint('═══════════════════════════════════════');
       debugPrint('✅ اكتمل! إجمالي الإشعارات: $totalScheduled');
-      debugPrint('📱 أول إشعار سيظهر بعد دقيقة واحدة');
       debugPrint('═══════════════════════════════════════');
     } catch (e) {
       debugPrint('❌ خطأ في جدولة الأذكار الدورية: $e');
@@ -340,13 +379,16 @@ class NotificationService {
   static Future<void> cancelNotification(int id) async {
     try {
       await _notifications.cancel(id);
+      // ✅ إلغاء الإشعارات المجدولة للأيام القادمة أيضاً
+      for (int day = 1; day <= 7; day++) {
+        await _notifications.cancel(id + (day * 1000));
+      }
       debugPrint('🗑️ تم إلغاء الإشعار: $id');
     } catch (e) {
       debugPrint('❌ خطأ في إلغاء الإشعار: $e');
     }
   }
 
-  // ✅ إلغاء سريع للإشعارات الدورية
   static Future<void> cancelAllPeriodicNotifications() async {
     try {
       final pending = await _notifications.pendingNotificationRequests();
