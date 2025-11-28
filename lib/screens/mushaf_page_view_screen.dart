@@ -1,12 +1,15 @@
+// lib/screens/mushaf_page_view_screen_updated.dart
+// ✅ نسخة محسّنة مع البحث وتقليب سلس
+
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:najatak/widgets/mushaf/mushaf_app_bar.dart';
 import 'package:najatak/widgets/mushaf/mushaf_page_content.dart';
 import 'package:najatak/widgets/mushaf/mushaf_playback_indicator.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/continuous_audio_handler.dart';
+import 'mushaf_search_screen.dart';
 
 class MushafPageViewScreen extends StatefulWidget {
   final int initialPage;
@@ -31,7 +34,7 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
 
   late ContinuousAudioHandler _audioHandler;
   bool isPlaying = false;
-  bool isLoading = false; // ✅ متتبع حالة التحميل
+  bool isLoading = false;
   bool isContinuousMode = false;
   int? playingSurah;
   int? playingAyah;
@@ -69,7 +72,11 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
   void initState() {
     super.initState();
     currentPage = widget.initialPage;
-    _pageController = PageController(initialPage: currentPage - 1);
+    // ✅ تحسين أداء PageController
+    _pageController = PageController(
+      initialPage: currentPage - 1,
+      viewportFraction: 1.0, // صفحة كاملة
+    );
     _audioHandler = ContinuousAudioHandler();
     _loadSettings();
     _setupAudioListener();
@@ -96,7 +103,6 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
       if (mounted) {
         setState(() {
           isPlaying = _audioHandler.isPlaying;
-          // ✅ تحديث حالة التحميل بناء على حالة المشغل
           isLoading =
               state.processingState == ProcessingState.buffering ||
               state.processingState == ProcessingState.loading;
@@ -108,10 +114,11 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
         if (playingSurah != null && playingAyah != null) {
           final page = quran.getPageNumber(playingSurah!, playingAyah!);
           if (page != currentPage) {
+            // ✅ تقليب سلس بدون animation قوية
             _pageController.animateToPage(
               page - 1,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOutCubic,
             );
           }
         }
@@ -355,7 +362,12 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
                 if (selectedPage != null &&
                     selectedPage! >= 1 &&
                     selectedPage! <= 604) {
-                  _pageController.jumpToPage(selectedPage! - 1);
+                  // ✅ تقليب سلس للصفحة المطلوبة
+                  _pageController.animateToPage(
+                    selectedPage! - 1,
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeInOutCubic,
+                  );
                   Navigator.pop(context);
                 }
               },
@@ -371,11 +383,19 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
     );
   }
 
+  // ✅ فتح شاشة البحث
+  void _openSearchScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const MushafSearchScreen()),
+    );
+  }
+
   Future<void> _togglePlayback() async {
     if (isPlaying) {
       await _audioHandler.stopContinuousReading();
     } else {
-      setState(() => isLoading = true); // ✅ بدء حالة التحميل
+      setState(() => isLoading = true);
       final verses = MushafPageContent.getPageVerses(currentPage);
       if (verses.isEmpty) {
         setState(() => isLoading = false);
@@ -393,7 +413,6 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
         totalAyahs: verseCount,
         reciter: selectedReciter,
       );
-      // ✅ حالة التحميل ستتحدث تلقائياً من _setupAudioListener
     }
   }
 
@@ -402,16 +421,100 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFE0),
       appBar: _showUI
-          ? MushafAppBar(
-              currentPage: currentPage,
-              onReciterTap: () async {
-                if (isPlaying) {
-                  await _audioHandler.stopContinuousReading();
-                }
-                _showReciterDialog();
-              },
-              onFontSizeTap: _showFontSizeDialog,
-              onGoToPageTap: _goToPage,
+          ? PreferredSize(
+              preferredSize: const Size.fromHeight(kToolbarHeight),
+              child: AppBar(
+                centerTitle: false,
+                title: const Text(
+                  'المصحف',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1B5E20),
+                    fontFamily: 'Cairo',
+                  ),
+                ),
+                backgroundColor: const Color(0xFFF5EFE0),
+                elevation: 0,
+                leading: Align(
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(2, 6, 10, 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1B5E20).withAlpha(25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: InkWell(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(
+                        Icons.arrow_back_ios,
+                        color: Color(0xFF1B5E20),
+                      ),
+                    ),
+                  ),
+                ),
+                actions: [
+                  // ✅ زر البحث
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1B5E20).withAlpha(25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: InkWell(
+                      onTap: _openSearchScreen,
+                      child: const Icon(Icons.search, color: Color(0xFF1B5E20)),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1B5E20).withAlpha(25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: InkWell(
+                      onTap: () async {
+                        if (isPlaying) {
+                          await _audioHandler.stopContinuousReading();
+                        }
+                        _showReciterDialog();
+                      },
+                      child: const Icon(Icons.person, color: Color(0xFF1B5E20)),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1B5E20).withAlpha(25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: InkWell(
+                      onTap: _showFontSizeDialog,
+                      child: const Icon(
+                        Icons.format_size,
+                        color: Color(0xFF1B5E20),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1B5E20).withAlpha(25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: InkWell(
+                      onTap: _goToPage,
+                      child: const Icon(
+                        Icons.bookmark,
+                        color: Color(0xFF1B5E20),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+              ),
             )
           : null,
       body: SafeArea(
@@ -419,9 +522,11 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
           onTap: () => setState(() => _showUI = !_showUI),
           child: Stack(
             children: [
+              // ✅ PageView محسّن للأداء
               PageView.builder(
                 controller: _pageController,
                 itemCount: 604,
+                physics: const PageScrollPhysics(), // ✅ تقليب طبيعي
                 onPageChanged: (index) =>
                     setState(() => currentPage = index + 1),
                 itemBuilder: (context, index) => MushafPageContent(
@@ -443,7 +548,7 @@ class _MushafPageViewScreenState extends State<MushafPageViewScreen> {
                   child: MushafPlaybackIndicator(
                     currentPage: currentPage,
                     isPlaying: isPlaying,
-                    isLoading: isLoading, // ✅ تمرير حالة التحميل
+                    isLoading: isLoading,
                     isContinuousMode: isContinuousMode,
                     playingSurah: playingSurah,
                     playingAyah: playingAyah,
