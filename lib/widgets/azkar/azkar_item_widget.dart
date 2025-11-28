@@ -67,18 +67,17 @@ class AzkarItemWidget extends StatelessWidget {
                     Text(
                       azkar.zekr,
                       style: const TextStyle(
-                        fontSize: 14,
-                        height: 1.8,
+                        fontSize: 18,
+                        height: 2,
                         fontWeight: FontWeight.w600,
+                        fontFamily: 'Amiri',
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     if (azkar.reference != null) ...[
                       const SizedBox(height: 4),
                       Text(
                         azkar.reference!,
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 10, color: Colors.grey[900]),
                       ),
                     ],
                   ],
