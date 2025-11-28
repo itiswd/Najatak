@@ -1,5 +1,5 @@
 // lib/services/continuous_audio_handler.dart
-// ✅ محسّن لحفظ واستئناف الموضع بشكل صحيح
+// ✅ مع دعم تحديث القارئ وحفظه
 
 import 'package:flutter/widgets.dart';
 import 'package:just_audio/just_audio.dart';
@@ -72,6 +72,7 @@ class ContinuousAudioHandler {
     }
   }
 
+  // ✅ دالة تحديث القارئ
   void updateReciter(String newReciter) {
     _currentReciter = newReciter;
     debugPrint('🎙️ تم تغيير القارئ إلى: $newReciter');
@@ -159,9 +160,7 @@ class ContinuousAudioHandler {
       await _audioPlayer.pause();
       _isPlayingContinuously = false;
 
-      // ✅ لا نمسح الموضع عند الإيقاف - نحتفظ به للاستئناف
-      // _currentSurah = 0;
-      // _currentAyah = 0;
+      // لا نمسح الموضع عند الإيقاف - نحتفظ به للاستئناف
       _playingSurah = 0;
       _playingAyah = 0;
 
@@ -203,7 +202,7 @@ class ContinuousAudioHandler {
     return 'https://everyayah.com/data/$reciter/$surahStr$ayahStr.mp3';
   }
 
-  // ✅ دالة جديدة للحصول على آخر موضع محفوظ
+  // ✅ دالة الحصول على آخر موضع محفوظ
   Future<Map<String, int>?> getLastSavedPosition() async {
     try {
       final prefs = await SharedPreferences.getInstance();

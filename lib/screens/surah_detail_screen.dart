@@ -631,14 +631,14 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                               child: Text(
                                 _toArabicNumbers(ayahNumber),
                                 style: TextStyle(
-                                  fontSize: ayahNumber > 9
+                                  fontSize: ayahNumber > 9 && ayahNumber <= 99
                                       ? fontSize - 13
                                       : ayahNumber > 99
-                                      ? fontSize - 16
+                                      ? fontSize - 18
                                       : fontSize - 10,
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  letterSpacing: -4,
+                                  letterSpacing: -2,
                                   fontFamily: 'Amiri',
                                   height: 1.0,
                                 ),

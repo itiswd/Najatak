@@ -1,5 +1,5 @@
 // lib/screens/mushaf_search_screen.dart
-// ✅ مع تمرير الآية للتظليل
+// ✅ إصلاح مشكلة الطبقات - استخدام pushReplacement
 
 import 'package:flutter/material.dart';
 import 'package:najatak/screens/mushaf_page_view_screen.dart';
@@ -67,17 +67,24 @@ class _MushafSearchScreenState extends State<MushafSearchScreen> {
     });
   }
 
-  // ✅ تحديث الدالة لتمرير الآية للتظليل
+  // ✅ استخدام pushReplacement لإزالة طبقة البحث
   void _navigateToPage(int surahNumber, int ayahNumber) {
     final pageNumber = quran.getPageNumber(surahNumber, ayahNumber);
+
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (context) => MushafPageViewScreen(
-          initialPage: pageNumber,
-          surahNumber: surahNumber,
-          highlightAyah: ayahNumber, // ✅ تمرير الآية للتظليل
-        ),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            MushafPageViewScreen(
+              initialPage: pageNumber,
+              surahNumber: surahNumber,
+              highlightAyah: ayahNumber,
+            ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // انتقال سلس
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 300),
       ),
     );
   }

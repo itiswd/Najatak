@@ -1,4 +1,4 @@
-// lib/screens/quran_screen.dart - محدث
+// lib/screens/quran_screen.dart - مع استعادة آخر موضع
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -84,23 +84,45 @@ class _QuranScreenState extends State<QuranScreen>
     ).then((_) => _loadData());
   }
 
-  void _navigateToMushafView() {
+  // ✅ الانتقال للمصحف مع استعادة آخر موضع
+  Future<void> _navigateToMushafView() async {
     int initialPage = 1;
+    int? highlightSurah;
+    int? highlightAyah;
 
-    // إذا كان هناك تقدم قراءة، انتقل للصفحة الأخيرة المقروءة
-    if (lastProgress != null) {
-      initialPage = QuranService.getPageNumber(
-        lastProgress!.surahNumber,
-        lastProgress!.ayahNumber,
-      );
+    // ✅ محاولة تحميل آخر موضع محفوظ
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedSurah = prefs.getInt('quran_playback_surah');
+      final savedAyah = prefs.getInt('quran_playback_ayah');
+
+      if (savedSurah != null &&
+          savedAyah != null &&
+          savedSurah > 0 &&
+          savedAyah > 0) {
+        initialPage = QuranService.getPageNumber(savedSurah, savedAyah);
+        highlightSurah = savedSurah;
+        highlightAyah = savedAyah;
+        debugPrint(
+          '✅ تم تحميل آخر موضع محفوظ: سورة $savedSurah، آية $savedAyah، صفحة $initialPage',
+        );
+      }
+    } catch (e) {
+      debugPrint('⚠️ لم يتم العثور على موضع محفوظ: $e');
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MushafPageViewScreen(initialPage: initialPage),
-      ),
-    );
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MushafPageViewScreen(
+            initialPage: initialPage,
+            surahNumber: highlightSurah,
+            highlightAyah: highlightAyah,
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -135,7 +157,7 @@ class _QuranScreenState extends State<QuranScreen>
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
-        // زر التبديل إلى وضع المصحف
+        // ✅ زر التبديل إلى وضع المصحف - مع استعادة الموضع
         IconButton(
           icon: const Icon(Icons.menu_book, size: 28),
           onPressed: _navigateToMushafView,
