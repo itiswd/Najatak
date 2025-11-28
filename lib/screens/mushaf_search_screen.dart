@@ -1,9 +1,9 @@
 // lib/screens/mushaf_search_screen.dart
-// ✅ إصلاح مشكلة الطبقات - استخدام pushReplacement
+// ✅ إصلاح مشكلة البحث والانتقال
 
 import 'package:flutter/material.dart';
-import 'package:najatak/screens/mushaf_page_view_screen.dart';
 import 'package:quran/quran.dart' as quran;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/quran_service.dart';
 
@@ -67,26 +67,24 @@ class _MushafSearchScreenState extends State<MushafSearchScreen> {
     });
   }
 
-  // ✅ استخدام pushReplacement لإزالة طبقة البحث
-  void _navigateToPage(int surahNumber, int ayahNumber) {
+  // ✅ حفظ البيانات والعودة
+  void _navigateToPage(int surahNumber, int ayahNumber) async {
     final pageNumber = quran.getPageNumber(surahNumber, ayahNumber);
 
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            MushafPageViewScreen(
-              initialPage: pageNumber,
-              surahNumber: surahNumber,
-              highlightAyah: ayahNumber,
-            ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          // انتقال سلس
-          return FadeTransition(opacity: animation, child: child);
-        },
-        transitionDuration: const Duration(milliseconds: 300),
-      ),
+    // حفظ الموضع في SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('quran_playback_surah', surahNumber);
+    await prefs.setInt('quran_playback_ayah', ayahNumber);
+    await prefs.setInt('mushaf_last_page', pageNumber);
+
+    debugPrint(
+      '✅ تم حفظ: سورة $surahNumber، آية $ayahNumber، صفحة $pageNumber',
     );
+
+    // العودة إلى شاشة المصحف (التي تم فتحها بالفعل)
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override
